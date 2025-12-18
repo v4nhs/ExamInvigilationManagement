@@ -1,0 +1,19 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ExamInvigilationManagement
+  datasource:
+    url: jdbc:mysql://localhost:3306/ExamInvigilationManagement
+    username: root
+    password: admin
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+jwt:
+  secret: "dGhpcy1pcy1hLXZlcnktc2VjdXJlLWp3dC1zZWNyZXQta2V5LTEyMw=="
+logging:
+  level:
+    org.springframework.security: DEBUG
