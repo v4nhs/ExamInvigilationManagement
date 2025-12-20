@@ -15,6 +15,11 @@ public enum ErrorCode {
     UNAUTHENTICATED(1006, "Unauthenticated"),
     ROLE_NOT_FOUND(1007, "Role not found"),
     USER_NOT_FOUND(1008, "User not found"),
+    DEPARTMENT_NOT_FOUND(2001, "Department not found"),
+    DEPARTMENT_EXISTED(2002, "Department existed"),
+    COURSE_NOT_FOUND(3001, "Course not found"),
+    LECTURER_NOT_FOUND(4001, "Lecture not found"),
+    PAYMENT_NOT_FOUND(5001, "Payment not found")
     ;
 
     private int code;
