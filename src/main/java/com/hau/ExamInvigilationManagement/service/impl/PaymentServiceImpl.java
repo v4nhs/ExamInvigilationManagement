@@ -1,7 +1,12 @@
 package com.hau.ExamInvigilationManagement.service.impl;
 
+import com.hau.ExamInvigilationManagement.dto.response.PaymentDetailResponse;
 import com.hau.ExamInvigilationManagement.dto.response.PaymentResponse;
+import com.hau.ExamInvigilationManagement.dto.response.SalaryResponse;
 import com.hau.ExamInvigilationManagement.entity.*;
+import com.hau.ExamInvigilationManagement.exception.AppException;
+import com.hau.ExamInvigilationManagement.exception.ErrorCode;
+import com.hau.ExamInvigilationManagement.mapper.PaymentMapper;
 import com.hau.ExamInvigilationManagement.repository.PaymentDetailRepository;
 import com.hau.ExamInvigilationManagement.repository.PaymentRepository;
 import com.hau.ExamInvigilationManagement.service.PaymentService;
@@ -18,20 +23,27 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepo;
     private final PaymentDetailRepository detailRepo;
+    private final PaymentMapper paymentMapper;
 
     @Override
     @Transactional
-    public void calculatePayment(ExamSchedule exam, Lecturer lecturer) {
+    public void calculatePayment(
+            ExamSchedule exam,
+            Lecturer lecturer,
+            long studentAssigned
+    ) {
 
+        long unitPrice;
         long amount;
 
         if (exam.getExamType() == ExamType.WRITTEN) {
+            unitPrice = 60000;
             amount = 60000;
         } else {
-            amount = exam.getStudentCount() * 9000L;
+            unitPrice = 9000;
+            amount = studentAssigned * unitPrice;
         }
 
-        // 🔹 lấy hoặc tạo Payment (theo giảng viên)
         Payment payment = paymentRepo.findByLecturer(lecturer)
                 .orElseGet(() ->
                         paymentRepo.save(
@@ -43,42 +55,65 @@ public class PaymentServiceImpl implements PaymentService {
                         )
                 );
 
-        // 🔹 lưu chi tiết tiền cho ca thi
         PaymentDetail detail = PaymentDetail.builder()
                 .payment(payment)
                 .examSchedule(exam)
+                .examType(exam.getExamType())
+                .studentCount(studentAssigned)
+                .unitPrice(unitPrice)
                 .amount(amount)
                 .build();
 
         detailRepo.save(detail);
 
-        // 🔹 cộng dồn tổng tiền
-        payment.setTotalAmount(payment.getTotalAmount() + amount);
+        payment.setTotalAmount(
+                payment.getTotalAmount() + amount
+        );
+
         paymentRepo.save(payment);
     }
 
     @Override
-    public PaymentResponse createPayment(ExamSchedule exam, Lecturer lecturer) {
-        return null;
-    }
+    public SalaryResponse getSalaryByLecturer(Long lecturerId) {
 
+        Payment payment = paymentRepo.findByLecturer_Id(lecturerId)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        return SalaryResponse.builder()
+                .lecturerId(payment.getLecturer().getId())
+                .lecturerName(payment.getLecturer().getFullName())
+                .totalAmount(payment.getTotalAmount())
+                .details(
+                        payment.getDetails().stream()
+                                .map(d -> PaymentDetailResponse.builder()
+                                        .examScheduleId(d.getExamSchedule().getId())
+                                        .examType(d.getExamType())
+                                        .studentCount(d.getStudentCount())
+                                        .unitPrice(d.getUnitPrice())
+                                        .amount(d.getAmount())
+                                        .build())
+                                .toList()
+                )
+                .build();
+    }
     @Override
     public PaymentResponse getById(Long id) {
-        return null;
+        Payment payment = paymentRepo.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        return paymentMapper.toResponse(payment);
     }
 
     @Override
     public List<PaymentResponse> getAll() {
-        return null;
+        return paymentRepo.findAll()
+                .stream()
+                .map(paymentMapper::toResponse)
+                .toList();
     }
 
     @Override
     public void delete(Long id) {
         paymentRepo.deleteById(id);
-    }
-
-    @Override
-    public void calculatePaymentForLecturer(Long lecturerId) {
-
     }
 }

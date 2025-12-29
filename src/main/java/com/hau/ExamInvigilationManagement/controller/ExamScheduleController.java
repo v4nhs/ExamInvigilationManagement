@@ -1,5 +1,6 @@
 package com.hau.ExamInvigilationManagement.controller;
 
+import com.hau.ExamInvigilationManagement.dto.request.AssignLecturerRequest;
 import com.hau.ExamInvigilationManagement.dto.request.CreateExamScheduleRequest;
 import com.hau.ExamInvigilationManagement.service.ExamScheduleService;
 import lombok.RequiredArgsConstructor;
@@ -23,5 +24,19 @@ public class ExamScheduleController {
     @GetMapping
     public ResponseEntity<?> getAll() {
         return ResponseEntity.ok(service.getAll());
+    }
+
+    @PostMapping("/{id}/assign")
+    public ResponseEntity<?> assignLecturers(
+            @PathVariable Long id,
+            @RequestBody AssignLecturerRequest request
+    ) {
+        service.assignLecturers(id, request.getLecturerIds());
+        return ResponseEntity.ok("Phân công giảng viên thành công");
+    }
+
+    @GetMapping("/{id}/available-lecturers")
+    public ResponseEntity<?> getAvailableLecturers(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getAvailableLecturers(id));
     }
 }

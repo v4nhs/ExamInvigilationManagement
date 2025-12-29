@@ -5,6 +5,7 @@ import com.hau.ExamInvigilationManagement.dto.response.ApiResponse;
 import com.hau.ExamInvigilationManagement.dto.response.PaymentResponse;
 import com.hau.ExamInvigilationManagement.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,11 @@ public class PaymentController {
     @GetMapping("/{id}")
     public ApiResponse<PaymentResponse> getById(@PathVariable Long id) {
         return ApiResponse.success(paymentService.getById(id));
+    }
+
+    @GetMapping("/lecturers/{lecturerId}")
+    public ResponseEntity<?> getSalary(@PathVariable Long lecturerId) {
+        return ResponseEntity.ok(paymentService.getSalaryByLecturer(lecturerId));
     }
 
     @DeleteMapping("/{id}")

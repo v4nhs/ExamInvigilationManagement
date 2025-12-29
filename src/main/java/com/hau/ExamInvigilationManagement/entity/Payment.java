@@ -4,18 +4,19 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "payments")
-@Getter
-@Setter
+@Getter @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Payment {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue
     private Long id;
 
     @ManyToOne
@@ -27,6 +28,7 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
-    @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL)
-    private List<PaymentDetail> details;
+    @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<PaymentDetail> details = new ArrayList<>();
 }

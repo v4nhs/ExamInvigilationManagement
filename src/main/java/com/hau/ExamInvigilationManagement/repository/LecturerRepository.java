@@ -9,14 +9,15 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
-public interface LecturerRepository extends JpaRepository<Lecturer, Long> {
+public interface    LecturerRepository extends JpaRepository<Lecturer, Long> {
 
     @Query("""
         SELECT l FROM Lecturer l
-        WHERE l.id NOT IN (
-            SELECT a.lecturer.id FROM Assignment a
-            WHERE a.examSchedule.examDate = :date
-              AND a.examSchedule.examTime = :time
+        WHERE NOT EXISTS (
+          SELECT a FROM Assignment a
+          WHERE a.lecturer = l
+            AND a.examSchedule.examDate = :date
+            AND a.examSchedule.examTime = :time
         )
     """)
     List<Lecturer> findAvailableLecturers(

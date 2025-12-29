@@ -3,11 +3,13 @@ package com.hau.ExamInvigilationManagement.service.impl;
 import com.hau.ExamInvigilationManagement.dto.request.LecturerRequest;
 import com.hau.ExamInvigilationManagement.dto.response.LecturerResponse;
 import com.hau.ExamInvigilationManagement.entity.Department;
+import com.hau.ExamInvigilationManagement.entity.ExamSchedule;
 import com.hau.ExamInvigilationManagement.entity.Lecturer;
 import com.hau.ExamInvigilationManagement.exception.AppException;
 import com.hau.ExamInvigilationManagement.exception.ErrorCode;
 import com.hau.ExamInvigilationManagement.mapper.LecturerMapper;
 import com.hau.ExamInvigilationManagement.repository.DepartmentRepository;
+import com.hau.ExamInvigilationManagement.repository.ExamScheduleRepository;
 import com.hau.ExamInvigilationManagement.repository.LecturerRepository;
 import com.hau.ExamInvigilationManagement.service.LecturerService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ public class LecturerServiceImpl implements LecturerService {
     private final LecturerRepository lecturerRepo;
     private final DepartmentRepository departmentRepo;
     private final LecturerMapper lecturerMapper;
+    private final ExamScheduleRepository examScheduleRepository;
 
     @Override
     public LecturerResponse create(LecturerRequest request) {
@@ -75,5 +78,20 @@ public class LecturerServiceImpl implements LecturerService {
     @Override
     public void delete(Long id) {
         lecturerRepo.deleteById(id);
+    }
+
+    @Override
+    public List<LecturerResponse> getAvailableLecturers(Long examScheduleId) {
+
+        ExamSchedule exam = examScheduleRepository.findById(examScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        return lecturerRepo.findAvailableLecturers(
+                        exam.getExamDate(),
+                        exam.getExamTime()
+                )
+                .stream()
+                .map(lecturerMapper::toResponse)
+                .toList();
     }
 }

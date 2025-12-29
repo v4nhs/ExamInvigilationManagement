@@ -10,5 +10,6 @@ public interface LecturerService {
     List<LecturerResponse> getAll();
     LecturerResponse getById(Long id);
     LecturerResponse update(Long id, LecturerRequest request);
+    List<LecturerResponse> getAvailableLecturers(Long examScheduleId);
     void delete(Long id);
 }
