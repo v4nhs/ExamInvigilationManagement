@@ -1,18 +1,17 @@
 package com.hau.ExamInvigilationManagement.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
-@Entity
 @Table(name = "exam_schedules")
-@Data
+@Entity
 @Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExamSchedule {
@@ -22,12 +21,15 @@ public class ExamSchedule {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "course_id")
     private Course course;
 
-    private String examDay;          // Thứ
-    private LocalDate examDate;      // Ngày thi
-    private LocalTime examTime;      // Giờ thi
+    private LocalDate examDate;
+    private LocalTime examTime;
+    private String examDay;
 
-    private int invigilatorCount;    // Số cán bộ coi thi
+    @Enumerated(EnumType.STRING)
+    private ExamType examType;   // WRITTEN / STUDENT_BASED
+
+    private Integer studentCount;
+    private Integer invigilatorCount;
 }

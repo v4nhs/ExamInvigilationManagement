@@ -19,7 +19,12 @@ public enum ErrorCode {
     DEPARTMENT_EXISTED(2002, "Department existed"),
     COURSE_NOT_FOUND(3001, "Course not found"),
     LECTURER_NOT_FOUND(4001, "Lecture not found"),
-    PAYMENT_NOT_FOUND(5001, "Payment not found")
+    LECTURER_TIME_CONFLICT(4002, "Lecture time conflict"),
+    PAYMENT_NOT_FOUND(5001, "Payment not found"),
+    PAYMENT_ERROR(5002, "Payment error"),
+    EXAM_CONFLICT(6001, "Exam conflict"),
+    EXAM_NOT_FOUND(6002, "Exam not found"),
+    SCHEDULE_CONFLICT(7001, "Schedule conflict")
     ;
 
     private int code;

@@ -7,7 +7,6 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface PaymentMapper {
-
     @Mapping(target = "lecturerName", source = "lecturer.fullName")
     PaymentResponse toResponse(Payment payment);
 }

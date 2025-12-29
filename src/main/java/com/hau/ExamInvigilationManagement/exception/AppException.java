@@ -3,6 +3,7 @@ package com.hau.ExamInvigilationManagement.exception;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

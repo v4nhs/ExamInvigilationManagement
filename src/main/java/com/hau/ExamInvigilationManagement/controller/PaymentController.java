@@ -16,11 +16,6 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-    @PostMapping
-    public ApiResponse<PaymentResponse> create(@RequestBody PaymentRequest request) {
-        return ApiResponse.success(paymentService.create(request));
-    }
-
     @GetMapping
     public ApiResponse<List<PaymentResponse>> getAll() {
         return ApiResponse.success(paymentService.getAll());
@@ -37,4 +32,3 @@ public class PaymentController {
         return ApiResponse.success(null);
     }
 }
-

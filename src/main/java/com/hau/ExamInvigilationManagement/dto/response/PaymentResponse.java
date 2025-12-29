@@ -1,16 +1,17 @@
 package com.hau.ExamInvigilationManagement.dto.response;
 
-import lombok.Builder;
-import lombok.Data;
+import com.hau.ExamInvigilationManagement.entity.Payment;
+import com.hau.ExamInvigilationManagement.entity.PaymentStatus;
+import lombok.*;
 
-import java.time.LocalDate;
-
-@Data
+@Getter
+@Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PaymentResponse {
     private Long id;
-    private Double amount;
-    private LocalDate paymentDate;
     private String lecturerName;
-    private String status;
+    private Long totalAmount;
+    private PaymentStatus status;
 }
