@@ -22,7 +22,7 @@ import java.util.List;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepo;
-    private final PaymentDetailRepository detailRepo;
+    private final PaymentDetailRepository paymentDetailRepository;
     private final PaymentMapper paymentMapper;
 
     @Override
@@ -64,7 +64,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(amount)
                 .build();
 
-        detailRepo.save(detail);
+        paymentDetailRepository.save(detail);
 
         payment.setTotalAmount(
                 payment.getTotalAmount() + amount
@@ -112,6 +112,11 @@ public class PaymentServiceImpl implements PaymentService {
                 .toList();
     }
 
+    @Override
+    public void revokePayment(ExamSchedule exam, Lecturer lecturer) {
+        PaymentDetail detail = paymentDetailRepository.findByExamAndLecturer(exam, lecturer)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
+        paymentDetailRepository.delete(detail);    }
     @Override
     public void delete(Long id) {
         paymentRepo.deleteById(id);

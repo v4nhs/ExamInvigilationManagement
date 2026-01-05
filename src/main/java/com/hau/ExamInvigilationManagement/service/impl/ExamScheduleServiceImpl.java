@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +34,6 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
 
     @Override
     public ExamScheduleResponse create(CreateExamScheduleRequest req) {
-
         Course course = courseRepo.findById(req.getCourseId())
                 .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
 
@@ -57,6 +57,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
                 .map(ExamScheduleResponse::from)
                 .toList();
     }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void assignLecturers(Long examId, List<Long> lecturerIds) {
@@ -64,31 +65,49 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
         ExamSchedule exam = examRepo.findById(examId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
-        if (lecturerIds.size() != exam.getInvigilatorCount()) {
+        // ✅ 1. Kiểm tra số lượng (Logic cộng dồn: Đã có + Mới > Định mức)
+        long currentAssignedCount = assignmentRepo.countByExamSchedule(exam);
+        if (currentAssignedCount + lecturerIds.size() > exam.getInvigilatorCount()) {
             throw new AppException(ErrorCode.INVALID_INVIGILATOR_COUNT);
         }
 
-        // ❌ kiểm tra trùng lịch TRƯỚC
+        // ✅ 2. Lấy danh sách ID đã gán trong ca này (để check trùng lặp)
+        List<Long> alreadyAssignedIds = assignmentRepo.findByExamSchedule(exam)
+                .stream()
+                .map(a -> a.getLecturer().getId())
+                .toList();
+
+        // ✅ 3. Vòng lặp kiểm tra Conflict và Trùng lặp
         for (Long lecturerId : lecturerIds) {
+            // Check trùng trong cùng ca thi
+            if (alreadyAssignedIds.contains(lecturerId)) {
+                throw new AppException(ErrorCode.LECTURER_ALREADY_ASSIGNED);
+            }
+
             Lecturer lecturer = lecturerRepo.findById(lecturerId)
                     .orElseThrow(() -> new AppException(ErrorCode.LECTURER_NOT_FOUND));
 
-            boolean conflict = assignmentRepo
-                    .existsConflict(
-                            lecturer,
-                            exam.getExamDate(),
-                            exam.getExamTime(),
-                            exam.getId()
-                    );
+            // Check trùng lịch với ca khác (Sử dụng hàm countConflicts trả về Long)
+            long conflictCount = assignmentRepo.countConflicts(
+                    lecturer,
+                    exam.getExamDate(),
+                    exam.getExamTime(),
+                    exam.getId()
+            );
 
-            if (conflict) {
+            if (conflictCount > 0) {
                 throw new AppException(ErrorCode.LECTURER_CONFLICT);
             }
         }
 
-        // 🔹 chia sinh viên
+        // ✅ 4. Lưu và tính toán thanh toán
+        // Lưu ý: Logic chia sinh viên này đang chia đều cho nhóm giảng viên MỚI thêm vào
         int totalStudents = exam.getStudentCount();
         int totalLecturers = lecturerIds.size();
+
+        // Tránh chia cho 0
+        if (totalLecturers == 0) return;
+
         int base = totalStudents / totalLecturers;
         int remainder = totalStudents % totalLecturers;
 
@@ -126,5 +145,28 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
                 .stream()
                 .map(lecturerMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    public void unassignLecturer(Long examScheduleId, Long lecturerId) {
+
+        // 1. Kiểm tra Ca thi có tồn tại không
+        ExamSchedule exam = examRepo.findById(examScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        // 2. Kiểm tra Giảng viên có tồn tại không
+        Lecturer lecturer = lecturerRepo.findById(lecturerId)
+                .orElseThrow(() -> new AppException(ErrorCode.LECTURER_NOT_FOUND));
+
+        // 3. Tìm bản ghi phân công (Assignment)
+        Assignment assignment = assignmentRepo.findByExamScheduleAndLecturer(exam, lecturer)
+                .orElseThrow(() -> new AppException(ErrorCode.ASSIGNMENT_NOT_FOUND));
+
+        // 4. Xóa dữ liệu tính tiền (Payment) trước
+        // (Bắt buộc phải xóa payment trước khi xóa assignment để tránh ràng buộc khóa ngoại nếu có)
+        paymentService.revokePayment(exam, lecturer);
+
+        // 5. Xóa phân công
+        assignmentRepo.delete(assignment);
     }
 }

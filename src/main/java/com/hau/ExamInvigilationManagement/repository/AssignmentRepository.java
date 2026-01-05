@@ -10,23 +10,25 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
-    @Query("""
-        SELECT COUNT(a) > 0
-        FROM Assignment a
-        WHERE a.lecturer = :lecturer
-          AND a.examSchedule.examDate = :examDate
-          AND a.examSchedule.examTime = :examTime
-          AND a.examSchedule.id <> :examScheduleId
-    """)
-    boolean existsConflict(
+    List<Assignment> findByExamSchedule(ExamSchedule examSchedule);
+
+    long countByExamSchedule(ExamSchedule examSchedule);
+
+    Optional<Assignment> findByExamScheduleAndLecturer(ExamSchedule examSchedule, Lecturer lecturer);
+    @Query("SELECT COUNT(a) " +
+            "FROM Assignment a " +
+            "WHERE a.lecturer = :lecturer " +
+            "AND a.examSchedule.examDate = :examDate " +
+            "AND a.examSchedule.examTime = :examTime " +
+            "AND a.examSchedule.id <> :examScheduleId")
+    Long countConflicts(
             @Param("lecturer") Lecturer lecturer,
             @Param("examDate") LocalDate examDate,
             @Param("examTime") LocalTime examTime,
             @Param("examScheduleId") Long examScheduleId
     );
-
-    long countByExamSchedule(ExamSchedule examSchedule);
 }

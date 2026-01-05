@@ -19,4 +19,5 @@ public interface PaymentService {
 
     void delete(Long id);
     SalaryResponse getSalaryByLecturer(Long lecturerId);
+    void revokePayment(ExamSchedule exam, Lecturer lecturer);
 }

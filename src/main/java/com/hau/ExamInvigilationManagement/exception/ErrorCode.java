@@ -27,7 +27,8 @@ public enum ErrorCode {
     PAYMENT_ERROR(5002, "Payment error"),
     EXAM_CONFLICT(6001, "Exam conflict"),
     EXAM_NOT_FOUND(6002, "Exam not found"),
-    SCHEDULE_CONFLICT(7001, "Schedule conflict")
+    SCHEDULE_CONFLICT(7001, "Schedule conflict"),
+    ASSIGNMENT_NOT_FOUND(8001, "Assignment not found")
     ;
 
     private int code;

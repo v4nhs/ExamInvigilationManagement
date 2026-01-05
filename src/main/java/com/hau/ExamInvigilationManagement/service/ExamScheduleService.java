@@ -13,4 +13,5 @@ public interface ExamScheduleService {
     void assignLecturers(Long examScheduleId, List<Long> lecturerIds);
 
     List<LecturerResponse> getAvailableLecturers(Long examScheduleId);
+    void unassignLecturer(Long examScheduleId, Long lecturerId);
 }
