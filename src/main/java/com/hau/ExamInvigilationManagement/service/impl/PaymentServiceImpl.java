@@ -12,71 +12,76 @@ import com.hau.ExamInvigilationManagement.repository.PaymentRepository;
 import com.hau.ExamInvigilationManagement.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
-    private final PaymentRepository paymentRepo;
+    private final PaymentRepository paymentRepository;
     private final PaymentDetailRepository paymentDetailRepository;
     private final PaymentMapper paymentMapper;
 
     @Override
-    @Transactional
-    public void calculatePayment(
-            ExamSchedule exam,
-            Lecturer lecturer,
-            long studentAssigned
-    ) {
+    public Optional<Payment> findByLecturer(Lecturer lecturer) {
+        return paymentRepository.findByLecturer(lecturer);
+    }
 
-        long unitPrice;
-        long amount;
+    @Override
+    public void calculatePayment(ExamSchedule exam, Lecturer lecturer, Long studentAssigned) {
+
+        // 1. Tính toán số tiền (Amount) và Đơn giá (Unit Price)
+        long amount = 0;
+        long unitPrice = 0;
 
         if (exam.getExamType() == ExamType.WRITTEN) {
-            unitPrice = 60000;
-            amount = 60000;
+            // Thi viết: 60k/ca
+            unitPrice = 60000L;
+            amount = 60000L;
         } else {
-            unitPrice = 9000;
-            amount = studentAssigned * unitPrice;
+            // Thi vấn đáp/thực hành: 9k/sv
+            unitPrice = 9000L;
+
+            if (studentAssigned > 0) {
+                amount = studentAssigned * unitPrice;
+            } else {
+                amount = 0L; // Giảng viên phụ -> 0đ
+            }
         }
 
-        Payment payment = paymentRepo.findByLecturer(lecturer)
-                .orElseGet(() ->
-                        paymentRepo.save(
-                                Payment.builder()
-                                        .lecturer(lecturer)
-                                        .totalAmount(0L)
-                                        .status(PaymentStatus.UNPAID)
-                                        .build()
-                        )
-                );
+        // 2. Lấy Payment cha hoặc Tạo mới nếu chưa có
+        Payment payment = paymentRepository.findByLecturer(lecturer)
+                .orElseGet(() -> {
+                    Payment newPayment = Payment.builder()
+                            .lecturer(lecturer)
+                            .totalAmount(0L)
+                            .build();
+                    return paymentRepository.save(newPayment);
+                });
 
+        // 3. Lưu PaymentDetail
         PaymentDetail detail = PaymentDetail.builder()
-                .payment(payment)
                 .examSchedule(exam)
-                .examType(exam.getExamType())
+                .payment(payment)
+                .amount(amount)
                 .studentCount(studentAssigned)
                 .unitPrice(unitPrice)
-                .amount(amount)
                 .build();
 
         paymentDetailRepository.save(detail);
 
-        payment.setTotalAmount(
-                payment.getTotalAmount() + amount
-        );
-
-        paymentRepo.save(payment);
+        // 4. Cập nhật lại tổng tiền trong bảng Payment cha
+        payment.setTotalAmount(payment.getTotalAmount() + amount);
+        paymentRepository.save(payment);
     }
 
     @Override
     public SalaryResponse getSalaryByLecturer(Long lecturerId) {
 
-        Payment payment = paymentRepo.findByLecturer_Id(lecturerId)
+        Payment payment = paymentRepository.findByLecturer_Id(lecturerId)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
 
         return SalaryResponse.builder()
@@ -96,9 +101,10 @@ public class PaymentServiceImpl implements PaymentService {
                 )
                 .build();
     }
+
     @Override
     public PaymentResponse getById(Long id) {
-        Payment payment = paymentRepo.findById(id)
+        Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
 
         return paymentMapper.toResponse(payment);
@@ -106,7 +112,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public List<PaymentResponse> getAll() {
-        return paymentRepo.findAll()
+        return paymentRepository.findAll()
                 .stream()
                 .map(paymentMapper::toResponse)
                 .toList();
@@ -114,11 +120,17 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public void revokePayment(ExamSchedule exam, Lecturer lecturer) {
-        PaymentDetail detail = paymentDetailRepository.findByExamAndLecturer(exam, lecturer)
+               PaymentDetail detail = paymentDetailRepository.findByExamAndLecturer(exam, lecturer)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
-        paymentDetailRepository.delete(detail);    }
+        Payment payment = detail.getPayment();
+        payment.setTotalAmount(payment.getTotalAmount() - detail.getAmount());
+        paymentRepository.save(payment);
+
+        paymentDetailRepository.delete(detail);
+    }
+
     @Override
     public void delete(Long id) {
-        paymentRepo.deleteById(id);
+        paymentRepository.deleteById(id);
     }
 }

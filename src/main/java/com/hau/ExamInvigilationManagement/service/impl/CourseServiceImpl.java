@@ -11,8 +11,14 @@ import com.hau.ExamInvigilationManagement.repository.CourseRepository;
 import com.hau.ExamInvigilationManagement.repository.DepartmentRepository;
 import com.hau.ExamInvigilationManagement.service.CourseService;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -73,5 +79,78 @@ public class CourseServiceImpl implements CourseService {
             throw new AppException(ErrorCode.COURSE_NOT_FOUND);
         }
         courseRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void importCourses(Long departmentId, MultipartFile file) {
+        // 1. Kiểm tra Khoa có tồn tại không (Vì môn học phải thuộc về 1 khoa)
+        Department department = departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = workbook.getSheetAt(0);
+
+            // Duyệt từ dòng 1 (bỏ dòng tiêu đề index 0)
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                // 2. Đọc Mã HP (Cột Index 1)
+                String code = getCellValue(row.getCell(1)).trim();
+                if (code.isEmpty()) continue;
+
+                // Kiểm tra trùng: Nếu mã đã có trong DB thì bỏ qua (hoặc update tùy logic)
+                if (courseRepository.existsByCode(code)) {
+                    continue;
+                }
+
+                // 3. Đọc Tên HP (Cột Index 2)
+                String name = getCellValue(row.getCell(2)).trim();
+
+                // 4. Tạo và Lưu Course
+                Course course = Course.builder()
+                        .code(code)
+                        .name(name)
+                        .department(department) // Gán vào khoa đã chọn
+                        .build();
+
+                courseRepository.save(course);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi đọc file Excel: " + e.getMessage());
+        }
+    }
+
+    // Hàm phụ trợ đọc cell Excel
+    private String getCellValue(Cell cell) {
+        if (cell == null) return "";
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    // Nếu là ngày, chuyển đổi sang LocalDate rồi format thành chuỗi dd/MM/yyyy
+                    try {
+                        return cell.getLocalDateTimeCellValue().toLocalDate()
+                                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    } catch (Exception e) {
+                        return ""; // Phòng trường hợp lỗi convert
+                    }
+                }
+                // Nếu là số bình thường (ví dụ: số lượng giám thị)
+                return String.valueOf(cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                // Nếu là công thức, thử lấy kết quả string, nếu không được thì lấy số
+                try {
+                    return cell.getStringCellValue();
+                } catch (Exception e) {
+                    return String.valueOf(cell.getNumericCellValue());
+                }
+            default:
+                return "";
+        }
     }
 }

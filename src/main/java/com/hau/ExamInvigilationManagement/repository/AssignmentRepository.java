@@ -17,18 +17,25 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Assignment> findByExamSchedule(ExamSchedule examSchedule);
 
     long countByExamSchedule(ExamSchedule examSchedule);
-
+    boolean existsByExamScheduleAndLecturer(ExamSchedule examSchedule, Lecturer lecturer);
     Optional<Assignment> findByExamScheduleAndLecturer(ExamSchedule examSchedule, Lecturer lecturer);
-    @Query("SELECT COUNT(a) " +
-            "FROM Assignment a " +
-            "WHERE a.lecturer = :lecturer " +
-            "AND a.examSchedule.examDate = :examDate " +
-            "AND a.examSchedule.examTime = :examTime " +
-            "AND a.examSchedule.id <> :examScheduleId")
-    Long countConflicts(
+    @Query("""
+        SELECT COUNT(a) FROM Assignment a
+        JOIN a.examSchedule e
+        WHERE a.lecturer = :lecturer
+        AND e.examDate = :date
+        AND e.id != :currentExamId      
+        AND (
+             e.examTime < :newEnd        
+             AND 
+             e.endTime > :newStart       
+        )
+    """)
+    long countTimeOverlaps(
             @Param("lecturer") Lecturer lecturer,
-            @Param("examDate") LocalDate examDate,
-            @Param("examTime") LocalTime examTime,
-            @Param("examScheduleId") Long examScheduleId
+            @Param("date") LocalDate date,
+            @Param("newStart") LocalTime newStart,
+            @Param("newEnd") LocalTime newEnd,
+            @Param("currentExamId") Long currentExamId
     );
 }

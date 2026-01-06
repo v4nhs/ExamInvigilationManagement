@@ -9,4 +9,6 @@ import java.util.List;
 @Setter
 public class AssignLecturerRequest {
     private List<Long> lecturerIds;
+    private String room;
+    private Integer studentCount;
 }

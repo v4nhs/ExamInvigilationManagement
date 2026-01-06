@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
 import java.util.Map;
@@ -18,6 +19,11 @@ import java.util.Map;
 public class ExamScheduleController {
 
     private final ExamScheduleService service;
+    @PostMapping(value = "/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> importSchedule(@RequestParam("file") MultipartFile file) {
+        service.importExamSchedule(file);
+        return ResponseEntity.ok(Collections.singletonMap("message", "Import lịch thi thành công!"));
+    }
 
     @PostMapping
     public ResponseEntity<?> create(@RequestBody CreateExamScheduleRequest request) {
@@ -29,17 +35,18 @@ public class ExamScheduleController {
         return ResponseEntity.ok(service.getAll());
     }
 
-    @PostMapping("/{id}/assign")
-    public ResponseEntity<?> assignLecturers(
-            @PathVariable Long id,
-            @RequestBody AssignLecturerRequest request
-    ) {
-        service.assignLecturers(id, request.getLecturerIds());
-        Map<String, String> response = Collections.singletonMap("message", "Phân công giảng viên thành công");
-
-        return ResponseEntity.ok(response);
+    @PostMapping("/{id}/assign-written")
+    public ResponseEntity<?> assignWritten(@PathVariable Long id, @RequestBody AssignLecturerRequest req) {
+        service.assignWrittenExam(id, req.getLecturerIds(), req.getRoom(), req.getStudentCount());
+        return ResponseEntity.ok(Collections.singletonMap("message", "Phân công & Cập nhật thành công"));
     }
-
+    // ✅ API 2: Phân công thi KHÁC (Vấn đáp/Thực hành...)
+    @PostMapping("/{id}/assign-other")
+    public ResponseEntity<?> assignOther(@PathVariable Long id, @RequestBody AssignLecturerRequest req) {
+        // Truyền thêm req.getStudentCount()
+        service.assignNonWrittenExam(id, req.getLecturerIds(), req.getRoom(), req.getStudentCount());
+        return ResponseEntity.ok(Collections.singletonMap("message", "Phân công & Cập nhật thành công"));
+    }
     @GetMapping("/{id}/available-lecturers")
     public ResponseEntity<?> getAvailableLecturers(@PathVariable Long id) {
         return ResponseEntity.ok(service.getAvailableLecturers(id));

@@ -2,6 +2,7 @@ package com.hau.ExamInvigilationManagement.service;
 
 import com.hau.ExamInvigilationManagement.dto.request.CourseRequest;
 import com.hau.ExamInvigilationManagement.dto.response.CourseResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -16,4 +17,5 @@ public interface CourseService {
     CourseResponse update(Long id, CourseRequest request);
 
     void delete(Long id);
+    void importCourses(Long departmentId, MultipartFile file);
 }

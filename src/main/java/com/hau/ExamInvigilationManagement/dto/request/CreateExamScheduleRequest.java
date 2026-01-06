@@ -27,4 +27,6 @@ public class CreateExamScheduleRequest {
     private Integer studentCount;
 
     private Integer invigilatorCount;
+
+    private String room;
 }

@@ -21,15 +21,32 @@ public class ExamSchedule {
     private Long id;
 
     @ManyToOne
+    @JoinColumn(name = "course_id")
     private Course course;
 
+    @Column(name = "exam_date")
     private LocalDate examDate;
-    private LocalTime examTime;
+
+    @Column(name = "exam_day")
     private String examDay;
 
-    @Enumerated(EnumType.STRING)
-    private ExamType examType;   // WRITTEN / STUDENT_BASED
+    @Column(name = "exam_time")
+    private LocalTime examTime;
 
+    // Thêm nullable = true nếu muốn cho phép null lúc đầu
+    @Column(name = "end_time")
+    private LocalTime endTime;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "exam_type")
+    private ExamType examType;
+
+    @Column(name = "room", length = 50)
+    private String room;
+
+    @Column(name = "student_count")
     private Integer studentCount;
+
+    @Column(name = "invigilator_count")
     private Integer invigilatorCount;
 }

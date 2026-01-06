@@ -6,8 +6,12 @@ import com.hau.ExamInvigilationManagement.dto.response.CourseResponse;
 import com.hau.ExamInvigilationManagement.service.CourseService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -44,6 +48,15 @@ public class CourseController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         courseService.delete(id);
         return ApiResponse.success(null);
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> importCourses(
+            @RequestParam("departmentId") Long departmentId, // Chọn khoa để import vào
+            @RequestParam("file") MultipartFile file
+    ) {
+        courseService.importCourses(departmentId, file);
+        return ResponseEntity.ok(Collections.singletonMap("message", "Import môn học thành công!"));
     }
 }
 

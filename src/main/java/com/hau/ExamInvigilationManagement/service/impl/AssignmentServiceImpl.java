@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,55 +35,61 @@ public class AssignmentServiceImpl implements AssignmentService {
         ExamSchedule exam = examRepo.findById(examScheduleId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
-        // ✅ 1. Kiểm tra định mức số lượng
-        long assigned = assignmentRepo.countByExamSchedule(exam);
-        if (assigned + lecturerIds.size() > exam.getInvigilatorCount()) {
+        // 1. Kiểm tra định mức số lượng
+        long assignedCount = assignmentRepo.countByExamSchedule(exam);
+        if (assignedCount + lecturerIds.size() > exam.getInvigilatorCount()) {
             throw new AppException(ErrorCode.INVALID_INVIGILATOR_COUNT);
         }
 
-        // ✅ 2. CHECK CONFLICT VỚI CÁC CA KHÁC
+        // Chuẩn bị giờ bắt đầu và kết thúc để check trùng lịch
+        LocalTime start = exam.getExamTime();
+        // Nếu endTime null thì mặc định +90 phút để check
+        LocalTime end = (exam.getEndTime() != null) ? exam.getEndTime() : start.plusMinutes(90);
+
+        // Danh sách giảng viên hợp lệ để gán
+        List<Lecturer> validLecturers = new ArrayList<>();
+
+        // 2. VALIDATE TỪNG GIẢNG VIÊN (Check tồn tại, Check trùng ca, Check trùng lịch)
         for (Long lecturerId : lecturerIds) {
             Lecturer lecturer = lecturerRepo.findById(lecturerId)
                     .orElseThrow(() -> new AppException(ErrorCode.LECTURER_NOT_FOUND));
 
-            // Gọi hàm countConflicts đã sửa ở bước trước
-            long conflictCount = assignmentRepo.countConflicts(
+            // A. Check trùng trong cùng ca (Duplicate)
+            boolean alreadyInExam = assignmentRepo.existsByExamScheduleAndLecturer(exam, lecturer);
+            if (alreadyInExam) {
+                throw new AppException(ErrorCode.LECTURER_ALREADY_ASSIGNED);
+            }
+
+            // B. Check trùng lịch với ca khác (Time Overlap)
+            // Gọi hàm countTimeOverlaps với đủ 5 tham số: Giảng viên, Ngày, Start, End, ID ca hiện tại
+            long conflictCount = assignmentRepo.countTimeOverlaps(
                     lecturer,
                     exam.getExamDate(),
-                    exam.getExamTime(),
+                    start,
+                    end,
                     exam.getId()
             );
 
             if (conflictCount > 0) {
                 throw new AppException(ErrorCode.LECTURER_CONFLICT);
             }
+
+            // Nếu qua hết các bài test thì thêm vào danh sách
+            validLecturers.add(lecturer);
         }
 
-        // ✅ 3. CHECK TRÙNG TRONG CÙNG CA
-        List<Long> alreadyAssignedIds = assignmentRepo.findByExamSchedule(exam)
-                .stream()
-                .map(a -> a.getLecturer().getId())
-                .collect(Collectors.toList());
+        // 3. THỰC HIỆN PHÂN CÔNG VÀ TÍNH TIỀN
+        int totalStudents = (exam.getStudentCount() == null) ? 0 : exam.getStudentCount();
+        int totalNewLecturers = validLecturers.size();
 
-        for (Long newId : lecturerIds) {
-            if (alreadyAssignedIds.contains(newId)) {
-                throw new AppException(ErrorCode.LECTURER_ALREADY_ASSIGNED);
-            }
-        }
+        if (totalNewLecturers == 0) return;
 
-        // ✅ 4. THỰC HIỆN PHÂN CÔNG VÀ CHIA SINH VIÊN
-        int totalStudents = exam.getStudentCount();
-        int totalLecturers = lecturerIds.size();
+        // Tính toán chia sinh viên: Mỗi người bao nhiêu, dư bao nhiêu
+        int base = totalStudents / totalNewLecturers;
+        int remainder = totalStudents % totalNewLecturers;
 
-        if (totalLecturers == 0) return;
-
-        // Tính toán cơ bản: Mỗi người bao nhiêu, dư bao nhiêu
-        int base = totalStudents / totalLecturers;
-        int remainder = totalStudents % totalLecturers;
-
-        for (int i = 0; i < lecturerIds.size(); i++) {
-            Lecturer lecturer = lecturerRepo.findById(lecturerIds.get(i))
-                    .orElseThrow(() -> new AppException(ErrorCode.LECTURER_NOT_FOUND));
+        for (int i = 0; i < totalNewLecturers; i++) {
+            Lecturer lecturer = validLecturers.get(i);
 
             // Lưu Assignment
             assignmentRepo.save(
@@ -91,8 +99,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                             .build()
             );
 
-            // 🔴 SỬA TẠI ĐÂY: Bỏ check WRITTEN, luôn luôn chia sinh viên
-            // Logic: Người thứ i (nếu i < số dư) sẽ phải gánh thêm 1 sinh viên lẻ
+            // Logic chia sinh viên: Người thứ i (nếu i < số dư) sẽ gánh thêm 1 sinh viên lẻ
             long studentAssigned = base + (i < remainder ? 1 : 0);
 
             // Tính tiền
