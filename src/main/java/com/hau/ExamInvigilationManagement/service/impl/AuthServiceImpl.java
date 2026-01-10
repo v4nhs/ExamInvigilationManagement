@@ -30,7 +30,13 @@ public class AuthServiceImpl implements AuthService {
 
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
+        System.out.println("=== DEBUG LOGIN ===");
+        System.out.println("1. Username gửi lên: " + request.getUsername());
+        System.out.println("2. Password gửi lên: " + request.getPassword());
+        System.out.println("3. Password Hash trong DB: " + user.getPassword());
+        boolean match = passwordEncoder.matches(request.getPassword(), user.getPassword());
+        System.out.println("4. Kết quả so sánh (Match): " + match);
+        System.out.println("===================");
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }

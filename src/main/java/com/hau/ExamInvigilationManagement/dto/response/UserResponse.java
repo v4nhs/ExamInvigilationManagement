@@ -3,7 +3,9 @@ package com.hau.ExamInvigilationManagement.dto.response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import javax.management.relation.Role;
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @AllArgsConstructor
@@ -16,4 +18,5 @@ public class UserResponse {
     String password;
     String firstName;
     String lastName;
+    Set<RoleResponse> roles;
 }

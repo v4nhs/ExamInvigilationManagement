@@ -17,4 +17,6 @@ public interface UserService {
     UserResponse updateUser(String userId, UserUpdateRequest request);
 
     void deleteUser(String id);
+
+    UserResponse assignRole(String userId, Long roleId);
 }

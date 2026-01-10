@@ -2,9 +2,11 @@ package com.hau.ExamInvigilationManagement.controller;
 
 import com.hau.ExamInvigilationManagement.dto.request.UserCreationRequest;
 import com.hau.ExamInvigilationManagement.dto.request.UserUpdateRequest;
+import com.hau.ExamInvigilationManagement.dto.response.ApiResponse;
 import com.hau.ExamInvigilationManagement.dto.response.UserResponse;
 import com.hau.ExamInvigilationManagement.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,5 +43,13 @@ public class UserController {
     @DeleteMapping("/{id}")
     public void deleteUser(@PathVariable String id) {
         userService.deleteUser(id);
+    }
+
+    @PutMapping("/{userId}/assign-role/{roleId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<UserResponse> assignRole(
+            @PathVariable String userId,
+            @PathVariable Long roleId) {
+        return ApiResponse.success(userService.assignRole(userId, roleId));
     }
 }

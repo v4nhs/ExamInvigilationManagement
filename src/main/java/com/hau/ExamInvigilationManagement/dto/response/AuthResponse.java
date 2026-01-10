@@ -1,5 +1,6 @@
 package com.hau.ExamInvigilationManagement.dto.response;
 
+import com.hau.ExamInvigilationManagement.entity.RefreshToken;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -11,4 +12,5 @@ import lombok.experimental.FieldDefaults;
 public class AuthResponse {
     String token;
     boolean authenticated;
+    private String refreshToken;
 }

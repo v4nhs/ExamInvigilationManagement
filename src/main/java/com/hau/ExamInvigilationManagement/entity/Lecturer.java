@@ -22,7 +22,8 @@ public class Lecturer {
     private String fullName;
     private String email;
     private String phone;
-
+    private String academicTitle;
+    private String specialization;
     @ManyToOne
     @JoinColumn(name = "department_id")
     private Department department;

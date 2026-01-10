@@ -14,10 +14,10 @@ import com.hau.ExamInvigilationManagement.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -28,8 +28,7 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     RoleRepository roleRepository;
     UserMapper userMapper;
-
-    PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+    PasswordEncoder passwordEncoder; // Đã inject qua constructor (Lombok), không cần new ở đây
 
     @Override
     public UserResponse createUser(UserCreationRequest request) {
@@ -38,12 +37,24 @@ public class UserServiceImpl implements UserService {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
-
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(role);
+
+        // --- SỬA ĐỔI: Xử lý nhiều Role ---
+        // Lấy danh sách ID từ request
+        List<Long> roleIds = request.getRoleIds();
+
+        // Tìm tất cả Role trong DB theo danh sách ID
+        List<Role> roles = roleRepository.findAllById(roleIds);
+
+        // (Tuỳ chọn) Kiểm tra nếu không tìm thấy role nào hợp lệ
+        if (roles.isEmpty() && !roleIds.isEmpty()) {
+            throw new AppException(ErrorCode.ROLE_NOT_FOUND);
+        }
+
+        // Gán HashSet các roles vào user
+        user.setRoles(new HashSet<>(roles));
+        // --------------------------------
 
         return userMapper.toUserResponse(userRepository.save(user));
     }
@@ -70,27 +81,26 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (request.getPassword() != null) {
+        // Cập nhật mật khẩu nếu có
+        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
-        if (request.getFirstName() != null) {
-            user.setFirstName(request.getFirstName());
-        }
+        // Cập nhật các thông tin cơ bản
+        if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
+        if (request.getLastName() != null) user.setLastName(request.getLastName());
+        if (request.getEmail() != null) user.setEmail(request.getEmail());
 
-        if (request.getLastName() != null) {
-            user.setLastName(request.getLastName());
-        }
+        // --- SỬA ĐỔI: Cập nhật nhiều Role ---
+        if (request.getRoleIds() != null) {
+            List<Role> roles = roleRepository.findAllById(request.getRoleIds());
 
-        if (request.getEmail() != null) {
-            user.setEmail(request.getEmail());
-        }
+            // Nếu muốn bắt buộc phải có role tồn tại thì check empty ở đây
+            // if (roles.isEmpty()) throw ...
 
-        if (request.getRoleId() != null) {
-            Role role = roleRepository.findById(request.getRoleId())
-                    .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
-            user.setRole(role);
+            user.setRoles(new HashSet<>(roles));
         }
+        // ------------------------------------
 
         return userMapper.toUserResponse(userRepository.save(user));
     }
@@ -102,4 +112,14 @@ public class UserServiceImpl implements UserService {
         }
         userRepository.deleteById(id);
     }
+    @Override
+    public UserResponse assignRole(String userId, Long roleId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+        user.getRoles().add(role);
+        return userMapper.toUserResponse(userRepository.save(user));
+    }
+
 }

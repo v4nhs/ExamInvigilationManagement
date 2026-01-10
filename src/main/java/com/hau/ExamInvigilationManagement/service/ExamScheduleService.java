@@ -15,4 +15,6 @@ public interface ExamScheduleService {
     void assignNonWrittenExam(Long examId, List<Long> lecturerIds, String room, Integer studentCount);   List<LecturerResponse> getAvailableLecturers(Long examScheduleId);
     void unassignLecturer(Long examScheduleId, Long lecturerId);
     void importExamSchedule(MultipartFile file);
+    ExamScheduleResponse getById(Long id);
+    List<Long> getAssignedLecturerIds(Long examScheduleId);
 }

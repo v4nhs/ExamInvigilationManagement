@@ -36,26 +36,12 @@ public class LecturerServiceImpl implements LecturerService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .phone(request.getPhone())
+                .academicTitle(request.getAcademicTitle())      // Thêm
+                .specialization(request.getSpecialization())    // Thêm
                 .department(dept)
                 .build();
 
         return lecturerMapper.toResponse(lecturerRepo.save(lecturer));
-    }
-
-    @Override
-    public List<LecturerResponse> getAll() {
-        return lecturerRepo.findAll()
-                .stream()
-                .map(lecturerMapper::toResponse)
-                .toList();
-    }
-
-    @Override
-    public LecturerResponse getById(Long id) {
-        return lecturerMapper.toResponse(
-                lecturerRepo.findById(id)
-                        .orElseThrow(() -> new AppException(ErrorCode.LECTURER_NOT_FOUND))
-        );
     }
 
     @Override
@@ -70,9 +56,26 @@ public class LecturerServiceImpl implements LecturerService {
         lecturer.setFullName(request.getFullName());
         lecturer.setEmail(request.getEmail());
         lecturer.setPhone(request.getPhone());
+        lecturer.setAcademicTitle(request.getAcademicTitle());      // Thêm
+        lecturer.setSpecialization(request.getSpecialization());    // Thêm
         lecturer.setDepartment(dept);
 
         return lecturerMapper.toResponse(lecturerRepo.save(lecturer));
+    }
+    @Override
+    public List<LecturerResponse> getAll() {
+        return lecturerRepo.findAll()
+                .stream()
+                .map(lecturerMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public LecturerResponse getById(Long id) {
+        return lecturerMapper.toResponse(
+                lecturerRepo.findById(id)
+                        .orElseThrow(() -> new AppException(ErrorCode.LECTURER_NOT_FOUND))
+        );
     }
 
     @Override

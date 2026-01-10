@@ -9,5 +9,9 @@ import org.mapstruct.Mapping;
 public interface LecturerMapper {
 
     @Mapping(target = "departmentName", source = "department.name")
+    @Mapping(target = "department", source = "department")
+    @Mapping(target = "academicTitle", source = "academicTitle")
+    @Mapping(target = "specialization", source = "specialization")
     LecturerResponse toResponse(Lecturer lecturer);
 }
+

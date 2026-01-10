@@ -9,4 +9,6 @@ public class LecturerRequest {
     private String email;
     private String phone;
     private Long departmentId;
+    private String academicTitle;
+    private String specialization;
 }

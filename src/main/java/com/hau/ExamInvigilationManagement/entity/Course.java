@@ -16,8 +16,8 @@ public class Course {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String code;   // mã HP
-    private String name;   // tên HP
+    private String code;
+    private String name;
 
     @ManyToOne
     @JoinColumn(name = "department_id")

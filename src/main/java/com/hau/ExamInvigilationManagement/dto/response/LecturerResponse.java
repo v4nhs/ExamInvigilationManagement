@@ -1,5 +1,6 @@
 package com.hau.ExamInvigilationManagement.dto.response;
 
+import com.hau.ExamInvigilationManagement.entity.Department;
 import lombok.Builder;
 import lombok.Data;
 
@@ -11,5 +12,8 @@ public class LecturerResponse {
     private String fullName;
     private String email;
     private String phone;
+    private Department department;
     private String departmentName;
+    private String academicTitle;
+    private String specialization;
 }

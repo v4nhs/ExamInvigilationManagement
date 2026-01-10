@@ -63,12 +63,29 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
 
         return ExamScheduleResponse.from(examRepo.save(exam));
     }
+    @Override
+    public ExamScheduleResponse getById(Long id) {
+        ExamSchedule exam = examRepo.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+        return ExamScheduleResponse.from(exam);
+    }
 
     @Override
     public List<ExamScheduleResponse> getAll() {
         return examRepo.findAll()
                 .stream()
                 .map(ExamScheduleResponse::from)
+                .toList();
+    }
+
+    @Override
+    public List<Long> getAssignedLecturerIds(Long examScheduleId) {
+        ExamSchedule exam = examRepo.findById(examScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        return assignmentRepo.findByExamSchedule(exam)
+                .stream()
+                .map(a -> a.getLecturer().getId())
                 .toList();
     }
 
