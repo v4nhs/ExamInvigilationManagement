@@ -14,6 +14,7 @@ import com.hau.ExamInvigilationManagement.repository.ExamScheduleRepository;
 import com.hau.ExamInvigilationManagement.repository.LecturerRepository;
 import com.hau.ExamInvigilationManagement.repository.UserRepository;
 import com.hau.ExamInvigilationManagement.service.LecturerService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,9 +33,10 @@ public class LecturerServiceImpl implements LecturerService {
     private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public LecturerResponse create(LecturerRequest request) {
         lecturerRepository.findByUserId(request.getUserId()).ifPresent(existing -> {
-            throw new AppException("Người dùng này đã được thêm làm giảng viên!", ErrorCode.LECTURER_ALREADY_EXISTS);
+            throw new AppException(ErrorCode.LECTURER_ALREADY_EXISTS, "Người dùng này đã được thêm làm giảng viên!");
         });
         User user = userRepository.findById(request.getUserId().toString())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -54,6 +56,7 @@ public class LecturerServiceImpl implements LecturerService {
     }
 
     @Override
+    @Transactional
     public LecturerResponse update(Long id, LecturerRequest request) {
         Lecturer lecturer = lecturerRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.LECTURER_NOT_FOUND));
@@ -88,6 +91,7 @@ public class LecturerServiceImpl implements LecturerService {
     }
 
     @Override
+    @Transactional
     public LecturerResponse getById(Long id) {
         return lecturerMapper.toResponse(
                 lecturerRepository.findById(id)
@@ -101,6 +105,7 @@ public class LecturerServiceImpl implements LecturerService {
     }
 
     @Override
+    @Transactional
     public List<LecturerResponse> getAvailableLecturers(Long examScheduleId) {
 
         ExamSchedule exam = examScheduleRepository.findById(examScheduleId)

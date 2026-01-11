@@ -11,6 +11,7 @@ import lombok.*;
 @AllArgsConstructor
 public class PaymentResponse {
     private Long id;
+    private Long lecturerId;
     private String lecturerName;
     private Long totalAmount;
     private PaymentStatus status;

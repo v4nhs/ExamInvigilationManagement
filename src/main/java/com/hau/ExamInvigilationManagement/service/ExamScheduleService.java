@@ -22,4 +22,7 @@ public interface ExamScheduleService {
     Page<ExamScheduleResponse> getAllWithPagination(Pageable pageable);
     Page<ExamScheduleResponse> searchByKeyword(String keyword, Pageable pageable);
     List<LecturerResponse> getAssignedLecturers(Long examScheduleId);
+    List<ExamScheduleResponse> getExamSchedulesByLecturerId(Long lecturerId);
+    List<ExamScheduleResponse> getExamSchedulesByLecturerIdentifier(String identifier);
+
 }

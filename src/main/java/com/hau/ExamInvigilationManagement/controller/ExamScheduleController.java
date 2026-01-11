@@ -85,7 +85,13 @@ public class ExamScheduleController {
         service.unassignLecturer(id, lecturerId);
         return ResponseEntity.ok(ApiResponse.success(Collections.singletonMap("message", "Xóa phân công giảng viên thành công")));
     }
-
+    @GetMapping("/lecturer/{lecturerId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT', 'LECTURER')")
+    public ResponseEntity<?> getMyExamAssignments(@PathVariable String lecturerId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                service.getExamSchedulesByLecturerIdentifier(lecturerId)
+        ));
+    }
     @GetMapping("/paginated")
     public ResponseEntity<?> getAllWithPagination(
             @RequestParam(defaultValue = "0") int page,
