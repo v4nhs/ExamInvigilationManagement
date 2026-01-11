@@ -7,10 +7,7 @@ import com.hau.ExamInvigilationManagement.entity.*;
 import com.hau.ExamInvigilationManagement.exception.AppException;
 import com.hau.ExamInvigilationManagement.exception.ErrorCode;
 import com.hau.ExamInvigilationManagement.mapper.LecturerMapper;
-import com.hau.ExamInvigilationManagement.repository.AssignmentRepository;
-import com.hau.ExamInvigilationManagement.repository.CourseRepository;
-import com.hau.ExamInvigilationManagement.repository.ExamScheduleRepository;
-import com.hau.ExamInvigilationManagement.repository.LecturerRepository;
+import com.hau.ExamInvigilationManagement.repository.*;
 import com.hau.ExamInvigilationManagement.service.ExamScheduleService;
 import com.hau.ExamInvigilationManagement.service.PaymentService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +26,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +39,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     private final AssignmentRepository assignmentRepo;
     private final PaymentService paymentService;
     private final LecturerMapper lecturerMapper;
+    private final ExamAssignmentRepository examAssignmentRepository;
 
     @Override
     public ExamScheduleResponse create(CreateExamScheduleRequest req) {
@@ -69,6 +68,30 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
         ExamSchedule exam = examRepo.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
         return ExamScheduleResponse.from(exam);
+    }
+
+    @Override
+    public List<ExamScheduleResponse> getExamSchedulesByLecturerId(Long lecturerId) {
+        return examAssignmentRepository.findByLecturerId(lecturerId).stream()
+                .map(ExamAssignment::getExamSchedule)
+                .distinct()
+                .map(ExamScheduleResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy lịch thi theo username hoặc numeric ID
+     * Ví dụ: "user1" hoặc "123"
+     */
+    public List<ExamScheduleResponse> getExamSchedulesByLecturerIdentifier(String identifier) {
+        try {
+            Long lecturerId = Long.parseLong(identifier.trim());
+            return getExamSchedulesByLecturerId(lecturerId);
+        } catch (NumberFormatException e) {
+            Lecturer lecturer = lecturerRepo.findByUserId(identifier)
+                    .orElseThrow(() -> new AppException(ErrorCode.LECTURER_NOT_FOUND));
+            return getExamSchedulesByLecturerId(lecturer.getId());
+        }
     }
 
     //======================Phân trang===============
@@ -176,7 +199,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
             assignmentRepo.deleteAll(existingAssignments);
             assignmentRepo.flush(); // Đảm bảo xóa được trước khi thêm cái mới
         }
-        // ✅ XONG - GIỜ KHÔNG CÓ XUNG ĐỘT NỮA
+        // ✅ XONG - GIỜ KHÔNG CÓ XUNG ĐộT NỮA
 
         // 1. CẬP NHẬT PHÒNG THI & SỐ LƯỢNG SINH VIÊN
         boolean isChanged = false;
@@ -467,6 +490,4 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
             throw new RuntimeException("Lỗi đọc file: " + e.getMessage());
         }
     }
-
-
 }

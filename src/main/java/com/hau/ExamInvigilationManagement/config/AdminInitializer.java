@@ -29,7 +29,8 @@ public class AdminInitializer implements CommandLineRunner {
                 .orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_ADMIN").description("Quản trị viên hệ thống").build()));
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_USER").description("Người dùng cơ bản").build()));
-
+        Role accountingRole = roleRepository.findByName("ROLE_ACCOUNTING")
+                .orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_ACCOUNTING").description("Kế toán").build()));
         Role lecturerRole = roleRepository.findByName("ROLE_LECTURER")
                 .orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_LECTURER").description("Giảng viên").build()));
         Role department = roleRepository.findByName("ROLE_DEPARTMENT")

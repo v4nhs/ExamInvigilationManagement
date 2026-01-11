@@ -67,14 +67,18 @@ public class SecurityConfig {
                                 "/favicon.ico"
                         ).permitAll()
                         // ===== PUBLIC ENDPOINTS =====
+                        .requestMatchers("/api/auth/change-password").authenticated()
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // ===== USER MANAGEMENT (ADMIN ONLY) =====
+                        // ===== USER MANAGEMENT =====
+                        // ADMIN: Full access
                         .requestMatchers(HttpMethod.GET, "/api/users").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/users/*").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/users").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/users/*").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/*").hasAuthority("ROLE_ADMIN")
+                        // DEPARTMENT: Can add users with ROLE_LECTURER, ROLE_USER only
+                        .requestMatchers(HttpMethod.POST, "/api/users").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
 
                         // ===== ROLE MANAGEMENT (ADMIN ONLY) =====
                         .requestMatchers(HttpMethod.GET, "/api/roles").hasAuthority("ROLE_ADMIN")
@@ -83,38 +87,42 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/roles/*").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/roles/*").hasAuthority("ROLE_ADMIN")
 
-                                // ===== DEPARTMENT MANAGEMENT =====
-                        // VIEW: ADMIN, DEPARTMENT, ACCOUNTING
-                        .requestMatchers(HttpMethod.GET, "/api/departments").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING")
+                        // ===== DEPARTMENT MANAGEMENT =====
+                        // VIEW ONLY: ADMIN, DEPARTMENT, ACCOUNTING
+                        .requestMatchers(HttpMethod.GET, "/api/departments").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING", "ROLE_LECTURER")
                         .requestMatchers(HttpMethod.GET, "/api/departments/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING")
-                        // CREATE/UPDATE/DELETE: ADMIN ONLY
+                        // MANAGE: ADMIN ONLY
                         .requestMatchers(HttpMethod.POST, "/api/departments").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/departments/*").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/departments/*").hasAuthority("ROLE_ADMIN")
+
                         // ===== COURSE MANAGEMENT =====
                         // VIEW: ADMIN, DEPARTMENT, ACCOUNTING
-                        .requestMatchers(HttpMethod.GET, "/api/courses").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING")
+                        .requestMatchers(HttpMethod.GET, "/api/courses").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING", "ROLE_LECTURER")
                         .requestMatchers(HttpMethod.GET, "/api/courses/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING")
-                        // CREATE/UPDATE/DELETE: ADMIN ONLY
-                        .requestMatchers(HttpMethod.POST, "/api/courses").hasAuthority("ROLE_ADMIN")
+                        // MANAGE: ADMIN, DEPARTMENT
+                        .requestMatchers(HttpMethod.POST, "/api/courses").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
                         .requestMatchers(HttpMethod.POST, "/api/courses/import").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/courses/*").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/courses/*").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/courses/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
+                        .requestMatchers(HttpMethod.DELETE, "/api/courses/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
 
                         // ===== LECTURER MANAGEMENT =====
                         // VIEW: ADMIN, DEPARTMENT, ACCOUNTING
-                        .requestMatchers(HttpMethod.GET, "/api/lecturers").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING")
+                        .requestMatchers(HttpMethod.GET, "/api/lecturers").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING", "ROLE_LECTURER")
                         .requestMatchers(HttpMethod.GET, "/api/lecturers/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING")
-                        // MANAGE: ADMIN, DEPARTMENT (can manage lecturers)
+                        // MANAGE: ADMIN, DEPARTMENT
                         .requestMatchers(HttpMethod.POST, "/api/lecturers").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
                         .requestMatchers(HttpMethod.PUT, "/api/lecturers/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
                         .requestMatchers(HttpMethod.DELETE, "/api/lecturers/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
 
                         // ===== EXAM SCHEDULES =====
-                        // VIEW: ADMIN, DEPARTMENT, ACCOUNTING
-                        .requestMatchers(HttpMethod.GET, "/api/exam-schedules").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING")
-                        .requestMatchers(HttpMethod.GET, "/api/exam-schedules/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING")
-                        // MANAGE: ADMIN ONLY
+                        // VIEW: ADMIN, DEPARTMENT, ACCOUNTING, LECTURER, USER
+                        .requestMatchers(HttpMethod.GET, "/api/exam-schedules").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING", "ROLE_LECTURER", "ROLE_USER")
+                        .requestMatchers(HttpMethod.GET, "/api/exam-schedules/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING", "ROLE_LECTURER", "ROLE_USER")
+                        // LECTURER VIEW OWN EXAM ASSIGNMENTS
+                        .requestMatchers(HttpMethod.GET, "/api/exam-schedules/lecturer/*")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_LECTURER")
+                        // MANAGE: ADMIN ONLY (no import for DEPARTMENT)
                         .requestMatchers(HttpMethod.POST, "/api/exam-schedules").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/exam-schedules/import").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/exam-schedules/*").hasAuthority("ROLE_ADMIN")
@@ -128,16 +136,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/exam-schedules/*/assign/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
 
                         // ===== PAYMENT/ACCOUNTING MANAGEMENT =====
-                        // ACCOUNTING can view and manage payments
-                        .requestMatchers(HttpMethod.GET, "/api/payments").hasAnyAuthority("ROLE_ADMIN", "ROLE_ACCOUNTING")
-                        .requestMatchers(HttpMethod.GET, "/api/payments/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_ACCOUNTING")
+                        // VIEW: ADMIN, ACCOUNTING, DEPARTMENT, LECTURER
+                        .requestMatchers(HttpMethod.GET, "/api/payments").hasAnyAuthority("ROLE_ADMIN", "ROLE_ACCOUNTING", "ROLE_DEPARTMENT", "ROLE_LECTURER")
+                        .requestMatchers(HttpMethod.GET, "/api/payments/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_ACCOUNTING", "ROLE_DEPARTMENT", "ROLE_LECTURER")
+                        // MANAGE: ADMIN, ACCOUNTING
                         .requestMatchers(HttpMethod.POST, "/api/payments").hasAnyAuthority("ROLE_ADMIN", "ROLE_ACCOUNTING")
                         .requestMatchers(HttpMethod.PUT, "/api/payments/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_ACCOUNTING")
                         .requestMatchers(HttpMethod.DELETE, "/api/payments/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_ACCOUNTING")
-                        .requestMatchers(HttpMethod.GET, "/api/payments/*/settlement").hasAnyAuthority("ROLE_ADMIN", "ROLE_ACCOUNTING")
+                        .requestMatchers(HttpMethod.GET, "/api/payments/*/settlement").hasAnyAuthority("ROLE_ADMIN", "ROLE_ACCOUNTING","ROLE_DEPARTMENT")
                         .requestMatchers(HttpMethod.POST, "/api/payments/*/settlement").hasAnyAuthority("ROLE_ADMIN", "ROLE_ACCOUNTING")
 
-                        // Any other request requires authentication
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

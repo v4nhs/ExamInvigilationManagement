@@ -7,6 +7,7 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface PaymentMapper {
-    @Mapping(target = "lecturerName", source = "lecturer.fullName")
+    @Mapping(target = "lecturerId", source = "lecturer.id")
+    @Mapping(target = "lecturerName", expression = "java(payment.getLecturer() != null ? (payment.getLecturer().getFullName() != null ? payment.getLecturer().getFullName() : payment.getLecturer().getUser().getFirstName() + \" \" + payment.getLecturer().getUser().getLastName()) : \"Unknown\")")
     PaymentResponse toResponse(Payment payment);
 }
