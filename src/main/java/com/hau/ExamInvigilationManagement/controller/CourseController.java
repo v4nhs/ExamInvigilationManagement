@@ -3,9 +3,14 @@ package com.hau.ExamInvigilationManagement.controller;
 import com.hau.ExamInvigilationManagement.dto.request.CourseRequest;
 import com.hau.ExamInvigilationManagement.dto.response.ApiResponse;
 import com.hau.ExamInvigilationManagement.dto.response.CourseResponse;
+import com.hau.ExamInvigilationManagement.dto.response.DepartmentResponse;
 import com.hau.ExamInvigilationManagement.service.CourseService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -57,6 +62,28 @@ public class CourseController {
     ) {
         courseService.importCourses(departmentId, file);
         return ResponseEntity.ok(Collections.singletonMap("message", "Import môn học thành công!"));
+    }
+    @GetMapping("/paginated")
+    public ApiResponse<Page<CourseResponse>> getAllWithPagination(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "ASC") String direction) {
+
+        Sort.Direction sortDirection = Sort.Direction.fromString(direction.toUpperCase());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+
+        return ApiResponse.success(courseService.getAllWithPagination(pageable));
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<Page<CourseResponse>> searchByKeyword(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ApiResponse.success(courseService.searchByKeyword(keyword, pageable));
     }
 }
 

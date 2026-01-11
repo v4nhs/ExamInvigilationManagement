@@ -20,6 +20,7 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String SECRET_KEY;
     private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24; // 24 tiếng
+//    private static final long EXPIRATION_TIME = 1000L * 60 * 60; //1 tiếng
 
     private Key getSignKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);

@@ -16,11 +16,13 @@ import com.hau.ExamInvigilationManagement.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.data.domain.Pageable;
 import java.io.IOException;
 import java.text.Normalizer;
 import java.time.LocalDate;
@@ -46,7 +48,6 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
                 .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
 
         LocalTime startTime = LocalTime.parse(req.getExamTime());
-        // Mặc định kết thúc sau 90 phút nếu không có input endTime
         LocalTime endTime = startTime.plusMinutes(90);
 
         ExamSchedule exam = ExamSchedule.builder()
@@ -70,6 +71,19 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
         return ExamScheduleResponse.from(exam);
     }
 
+    //======================Phân trang===============
+    @Override
+    public Page<ExamScheduleResponse> getAllWithPagination(Pageable pageable) {
+        Page<ExamSchedule> page = examRepo.findAll(pageable);
+        return page.map(ExamScheduleResponse::from);
+    }
+
+    @Override
+    public Page<ExamScheduleResponse> searchByKeyword(String keyword, Pageable pageable) {
+        Page<ExamSchedule> page = examRepo.searchByKeyword(keyword, pageable);
+        return page.map(ExamScheduleResponse::from);
+    }
+    //===============================================
     @Override
     public List<ExamScheduleResponse> getAll() {
         return examRepo.findAll()
@@ -100,8 +114,13 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
         ExamSchedule exam = examRepo.findById(examId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
-        if (exam.getExamType() != ExamType.WRITTEN) {
-            throw new AppException(ErrorCode.INVALID_EXAM_TYPE);
+        List<Assignment> existingAssignments = assignmentRepo.findByExamSchedule(exam);
+        if (!existingAssignments.isEmpty()) {
+            for (Assignment oldAssignment : existingAssignments) {
+                paymentService.revokePayment(exam, oldAssignment.getLecturer());
+            }
+            assignmentRepo.deleteAll(existingAssignments);
+            assignmentRepo.flush();
         }
 
         // 1. CẬP NHẬT PHÒNG THI & SỐ LƯỢNG SINH VIÊN
@@ -118,7 +137,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
             examRepo.save(exam);
         }
 
-        // 2. Validate & Lưu phân công
+        // 2. Xác thực & Lưu phân công (giờ không bị xung đột)
         validateAssignmentLimit(exam, lecturerIds.size());
 
         for (Long lecturerId : lecturerIds) {
@@ -129,8 +148,10 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
                     .lecturer(lecturer)
                     .build());
 
-            // TÍNH TIỀN: Thi viết vẫn truyền 0 (tính theo ca), dù có update studentCount vào DB để lưu trữ
-            paymentService.calculatePayment(exam, lecturer, 0L);
+            // TÍNH TIỀN: Thi viết lưu số sinh viên thực tế để hiển thị
+            // Nhưng tiền vẫn tính theo ca (60k/ca không phụ thuộc số sinh viên)
+            int actualStudentCount = (exam.getStudentCount() == null) ? 0 : exam.getStudentCount();
+            paymentService.calculatePayment(exam, lecturer, (long) actualStudentCount);
         }
     }
 
@@ -144,10 +165,18 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     public void assignNonWrittenExam(Long examId, List<Long> lecturerIds, String room, Integer studentCount) {
         ExamSchedule exam = examRepo.findById(examId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
-
-        if (exam.getExamType() == ExamType.WRITTEN) {
-            throw new AppException(ErrorCode.INVALID_EXAM_TYPE);
+        // 🔴 THÊM: XÓA PHÂN CÔNG CŨ CỦA CA THI NÀY
+        List<Assignment> existingAssignments = assignmentRepo.findByExamSchedule(exam);
+        if (!existingAssignments.isEmpty()) {
+            // Thu hồi tiền từ những giảng viên cũ
+            for (Assignment oldAssignment : existingAssignments) {
+                paymentService.revokePayment(exam, oldAssignment.getLecturer());
+            }
+            // Xóa phân công cũ
+            assignmentRepo.deleteAll(existingAssignments);
+            assignmentRepo.flush(); // Đảm bảo xóa được trước khi thêm cái mới
         }
+        // ✅ XONG - GIỜ KHÔNG CÓ XUNG ĐỘT NỮA
 
         // 1. CẬP NHẬT PHÒNG THI & SỐ LƯỢNG SINH VIÊN
         boolean isChanged = false;
@@ -165,7 +194,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
 
         validateAssignmentLimit(exam, lecturerIds.size());
 
-        // Lấy tổng sinh viên (Ưu tiên số vừa nhập, nếu không nhập thì lấy số cũ trong DB)
+        // Lấy tổng sinh viên
         int currentTotalStudents = (exam.getStudentCount() == null) ? 0 : exam.getStudentCount();
 
         for (int i = 0; i < lecturerIds.size(); i++) {
@@ -175,15 +204,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
                     .examSchedule(exam)
                     .lecturer(lecturer)
                     .build());
-
-            // TÍNH TIỀN: Dùng số lượng sinh viên thực tế để tính
-            long studentAssigned = 0;
-            if (i == 0) {
-                studentAssigned = currentTotalStudents; // Người 1 nhận hết
-            } else {
-                studentAssigned = 0; // Người sau nhận 0
-            }
-            paymentService.calculatePayment(exam, lecturer, studentAssigned);
+            paymentService.calculatePayment(exam, lecturer, (long) currentTotalStudents);
         }
     }
     // =========================================================================
@@ -297,6 +318,17 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
         }
     }
 
+    @Override
+    public List<LecturerResponse> getAssignedLecturers(Long examScheduleId) {
+        ExamSchedule exam = examRepo.findById(examScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        return assignmentRepo.findByExamSchedule(exam)
+                .stream()
+                .map(assignment -> lecturerMapper.toResponse(assignment.getLecturer()))
+                .toList();
+    }
+
     // =========================================================================
     // IMPORT EXCEL (ĐÃ CẬP NHẬT ĐỂ ĐỌC END-TIME)
     // =========================================================================
@@ -403,13 +435,25 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
                     if (!r.isEmpty()) room = r;
                 }
 
+                // --- KIỂM TRA TRÙNG LẶP ---
+                boolean exists = examRepo.existsByCourseDateAndTime(
+                        course.getId(),
+                        examDate,
+                        examTime
+                );
+
+                if (exists) {
+                    System.err.println("Dòng " + (i+1) + ": Lịch thi của môn " + courseCode + " vào ngày " + dateStr + " giờ " + timeRange + " đã tồn tại - BỎ QUA");
+                    continue;
+                }
+
                 // --- Lưu ---
                 ExamSchedule exam = ExamSchedule.builder()
                         .course(course)
                         .examDay(examDay)
                         .examDate(examDate)
                         .examTime(examTime)
-                        .endTime(endTime) // 🟢 Quan trọng cho check trùng
+                        .endTime(endTime)
                         .invigilatorCount(invigilatorCount)
                         .studentCount(0)
                         .examType(examType)
@@ -423,4 +467,6 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
             throw new RuntimeException("Lỗi đọc file: " + e.getMessage());
         }
     }
+
+
 }

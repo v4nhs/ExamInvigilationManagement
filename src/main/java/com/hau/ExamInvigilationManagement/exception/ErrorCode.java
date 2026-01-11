@@ -23,6 +23,7 @@ public enum ErrorCode {
     LECTURER_CONFLICT(4003, "Lecture conflict"),
     INVALID_INVIGILATOR_COUNT(4004, "Invalid invigilator conflict"),
     LECTURER_ALREADY_ASSIGNED(4005, "Lecture already assigned"),
+    LECTURER_ALREADY_EXISTS(4006, "Lecturer already exists for this user"),
     PAYMENT_NOT_FOUND(5001, "Payment not found"),
     PAYMENT_ERROR(5002, "Payment error"),
     EXAM_CONFLICT(6001, "Exam conflict"),

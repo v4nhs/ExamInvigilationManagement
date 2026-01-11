@@ -5,6 +5,8 @@ import com.hau.ExamInvigilationManagement.dto.response.SalaryResponse;
 import com.hau.ExamInvigilationManagement.entity.ExamSchedule;
 import com.hau.ExamInvigilationManagement.entity.Lecturer;
 import com.hau.ExamInvigilationManagement.entity.Payment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -22,4 +24,6 @@ public interface PaymentService {
 
     SalaryResponse getSalaryByLecturer(Long lecturerId);
     void revokePayment(ExamSchedule exam, Lecturer lecturer);
+    Page<PaymentResponse> getPaymentsPaginated(Pageable pageable);
+
 }

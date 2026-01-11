@@ -14,6 +14,8 @@ import com.hau.ExamInvigilationManagement.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +30,7 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     RoleRepository roleRepository;
     UserMapper userMapper;
-    PasswordEncoder passwordEncoder; // Đã inject qua constructor (Lombok), không cần new ở đây
+    PasswordEncoder passwordEncoder;
 
     @Override
     public UserResponse createUser(UserCreationRequest request) {
@@ -40,23 +42,27 @@ public class UserServiceImpl implements UserService {
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        // --- SỬA ĐỔI: Xử lý nhiều Role ---
-        // Lấy danh sách ID từ request
         List<Long> roleIds = request.getRoleIds();
-
-        // Tìm tất cả Role trong DB theo danh sách ID
         List<Role> roles = roleRepository.findAllById(roleIds);
-
-        // (Tuỳ chọn) Kiểm tra nếu không tìm thấy role nào hợp lệ
         if (roles.isEmpty() && !roleIds.isEmpty()) {
             throw new AppException(ErrorCode.ROLE_NOT_FOUND);
         }
-
-        // Gán HashSet các roles vào user
         user.setRoles(new HashSet<>(roles));
-        // --------------------------------
+
 
         return userMapper.toUserResponse(userRepository.save(user));
+    }
+
+    @Override
+    public Page<UserResponse> getAllWithPagination(Pageable pageable) {
+        Page<User> page = userRepository.findAll(pageable);
+        return page.map(userMapper::toUserResponse);
+    }
+
+    @Override
+    public Page<UserResponse> searchByKeyword(String keyword, Pageable pageable) {
+        Page<User> page = userRepository.searchByKeyword(keyword, pageable);
+        return page.map(userMapper::toUserResponse);
     }
 
     @Override
@@ -81,26 +87,20 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        // Cập nhật mật khẩu nếu có
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
-        // Cập nhật các thông tin cơ bản
         if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
         if (request.getLastName() != null) user.setLastName(request.getLastName());
         if (request.getEmail() != null) user.setEmail(request.getEmail());
-
-        // --- SỬA ĐỔI: Cập nhật nhiều Role ---
         if (request.getRoleIds() != null) {
             List<Role> roles = roleRepository.findAllById(request.getRoleIds());
+        if (roles.isEmpty())
+            throw new RuntimeException(ErrorCode.ROLE_NOT_FOUND.name());
 
-            // Nếu muốn bắt buộc phải có role tồn tại thì check empty ở đây
-            // if (roles.isEmpty()) throw ...
-
-            user.setRoles(new HashSet<>(roles));
+        user.setRoles(new HashSet<>(roles));
         }
-        // ------------------------------------
 
         return userMapper.toUserResponse(userRepository.save(user));
     }
@@ -121,5 +121,7 @@ public class UserServiceImpl implements UserService {
         user.getRoles().add(role);
         return userMapper.toUserResponse(userRepository.save(user));
     }
+
+
 
 }

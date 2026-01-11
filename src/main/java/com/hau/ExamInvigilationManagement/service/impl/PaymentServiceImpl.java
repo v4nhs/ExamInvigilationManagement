@@ -11,6 +11,8 @@ import com.hau.ExamInvigilationManagement.repository.PaymentDetailRepository;
 import com.hau.ExamInvigilationManagement.repository.PaymentRepository;
 import com.hau.ExamInvigilationManagement.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -48,7 +50,7 @@ public class PaymentServiceImpl implements PaymentService {
             if (studentAssigned > 0) {
                 amount = studentAssigned * unitPrice;
             } else {
-                amount = 0L; // Giảng viên phụ -> 0đ
+                amount = 0L;
             }
         }
 
@@ -67,6 +69,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .examSchedule(exam)
                 .payment(payment)
                 .amount(amount)
+                .examType(exam.getExamType())
                 .studentCount(studentAssigned)
                 .unitPrice(unitPrice)
                 .build();
@@ -132,5 +135,11 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public void delete(Long id) {
         paymentRepository.deleteById(id);
+    }
+
+    @Override
+    public Page<PaymentResponse> getPaymentsPaginated(Pageable pageable) {
+        Page<Payment> page = paymentRepository.findAll(pageable);
+        return page.map(paymentMapper::toResponse);
     }
 }

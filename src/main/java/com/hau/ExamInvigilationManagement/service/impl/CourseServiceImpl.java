@@ -13,6 +13,8 @@ import com.hau.ExamInvigilationManagement.service.CourseService;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +43,18 @@ public class CourseServiceImpl implements CourseService {
                 .build();
 
         return courseMapper.toResponse(courseRepository.save(course));
+    }
+
+    @Override
+    public Page<CourseResponse> getAllWithPagination(Pageable pageable) {
+        Page<Course> page = courseRepository.findAll(pageable);
+        return page.map(courseMapper::toResponse);
+    }
+
+    @Override
+    public Page<CourseResponse> searchByKeyword(String keyword, Pageable pageable) {
+        Page<Course> page = courseRepository.searchByKeyword(keyword, pageable);
+        return page.map(courseMapper::toResponse);
     }
 
     @Override
@@ -84,12 +98,14 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void importCourses(Long departmentId, MultipartFile file) {
-        // 1. Kiểm tra Khoa có tồn tại không (Vì môn học phải thuộc về 1 khoa)
+        // 1. Kiểm tra Khoa có tồn tại không
         Department department = departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
 
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
+
+            System.out.println("============== BẮT ĐẦU IMPORT HỌC PHẦN ==============");
 
             // Duyệt từ dòng 1 (bỏ dòng tiêu đề index 0)
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
@@ -100,8 +116,9 @@ public class CourseServiceImpl implements CourseService {
                 String code = getCellValue(row.getCell(1)).trim();
                 if (code.isEmpty()) continue;
 
-                // Kiểm tra trùng: Nếu mã đã có trong DB thì bỏ qua (hoặc update tùy logic)
+                // Kiểm tra trùng theo mã HP
                 if (courseRepository.existsByCode(code)) {
+                    System.err.println("Dòng " + (i+1) + ": Mã học phần " + code + " đã tồn tại - BỎ QUA");
                     continue;
                 }
 
@@ -112,11 +129,12 @@ public class CourseServiceImpl implements CourseService {
                 Course course = Course.builder()
                         .code(code)
                         .name(name)
-                        .department(department) // Gán vào khoa đã chọn
+                        .department(department)
                         .build();
 
                 courseRepository.save(course);
             }
+            System.out.println("============== IMPORT HỌC PHẦN HOÀN TẤT ==============");
         } catch (IOException e) {
             throw new RuntimeException("Lỗi khi đọc file Excel: " + e.getMessage());
         }

@@ -73,37 +73,18 @@ public class AssignmentServiceImpl implements AssignmentService {
             if (conflictCount > 0) {
                 throw new AppException(ErrorCode.LECTURER_CONFLICT);
             }
-
-            // Nếu qua hết các bài test thì thêm vào danh sách
             validLecturers.add(lecturer);
         }
-
         // 3. THỰC HIỆN PHÂN CÔNG VÀ TÍNH TIỀN
         int totalStudents = (exam.getStudentCount() == null) ? 0 : exam.getStudentCount();
-        int totalNewLecturers = validLecturers.size();
 
-        if (totalNewLecturers == 0) return;
-
-        // Tính toán chia sinh viên: Mỗi người bao nhiêu, dư bao nhiêu
-        int base = totalStudents / totalNewLecturers;
-        int remainder = totalStudents % totalNewLecturers;
-
-        for (int i = 0; i < totalNewLecturers; i++) {
-            Lecturer lecturer = validLecturers.get(i);
-
-            // Lưu Assignment
-            assignmentRepo.save(
-                    Assignment.builder()
-                            .examSchedule(exam)
-                            .lecturer(lecturer)
-                            .build()
-            );
-
-            // Logic chia sinh viên: Người thứ i (nếu i < số dư) sẽ gánh thêm 1 sinh viên lẻ
-            long studentAssigned = base + (i < remainder ? 1 : 0);
-
-            // Tính tiền
-            paymentService.calculatePayment(exam, lecturer, studentAssigned);
+        if (validLecturers.isEmpty()) return;
+        for (Lecturer lecturer : validLecturers) {
+            assignmentRepo.save(Assignment.builder()
+                    .examSchedule(exam)
+                    .lecturer(lecturer)
+                    .build());
+            paymentService.calculatePayment(exam, lecturer, (long) totalStudents);
         }
     }
 }

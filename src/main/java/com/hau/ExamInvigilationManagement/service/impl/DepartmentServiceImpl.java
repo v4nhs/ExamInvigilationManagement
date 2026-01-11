@@ -9,6 +9,8 @@ import com.hau.ExamInvigilationManagement.mapper.DepartmentMapper;
 import com.hau.ExamInvigilationManagement.repository.DepartmentRepository;
 import com.hau.ExamInvigilationManagement.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -52,6 +54,18 @@ public class DepartmentServiceImpl implements DepartmentService {
         return repository.findById(id)
                 .map(mapper::toResponse)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+    }
+
+    @Override
+    public Page<DepartmentResponse> getAllWithPagination(Pageable pageable) {
+        Page<Department> page = repository.findAll(pageable);
+        return page.map(mapper::toResponse);
+    }
+
+    @Override
+    public Page<DepartmentResponse> searchByKeyword(String keyword, Pageable pageable) {
+        Page<Department> page = repository.searchByKeyword(keyword, pageable);
+        return page.map(mapper::toResponse);
     }
 
     @Override

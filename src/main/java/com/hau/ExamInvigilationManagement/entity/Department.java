@@ -16,8 +16,8 @@ public class Department {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String code;   // mã khoa
+    private String code;
 
     @Column(nullable = false)
-    private String name;   // tên khoa
+    private String name;
 }

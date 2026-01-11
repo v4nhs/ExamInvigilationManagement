@@ -30,8 +30,10 @@ public class AdminInitializer implements CommandLineRunner {
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_USER").description("Người dùng cơ bản").build()));
 
-        Role lecturerRole = roleRepository.findByName("LECTURER")
-                .orElseGet(() -> roleRepository.save(Role.builder().name("LECTURER").description("Giảng viên").build()));
+        Role lecturerRole = roleRepository.findByName("ROLE_LECTURER")
+                .orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_LECTURER").description("Giảng viên").build()));
+        Role department = roleRepository.findByName("ROLE_DEPARTMENT")
+                .orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_DEPARTMENT").description("Khoa").build()));
         User admin = userRepository.findByUsername("admin").orElse(null);
 
         if (admin == null) {

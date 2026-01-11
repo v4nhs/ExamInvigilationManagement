@@ -5,7 +5,11 @@ import com.hau.ExamInvigilationManagement.dto.response.ApiResponse;
 import com.hau.ExamInvigilationManagement.dto.response.PaymentResponse;
 import com.hau.ExamInvigilationManagement.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,8 +22,16 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @GetMapping
-    public ApiResponse<List<PaymentResponse>> getAll() {
-        return ApiResponse.success(paymentService.getAll());
+    @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTING')")
+    public ResponseEntity<?> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sort,
+            @RequestParam(defaultValue = "DESC") String direction
+    ) {
+        Sort.Direction sortDir = Sort.Direction.fromString(direction.toUpperCase());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDir, sort));
+        return ResponseEntity.ok(ApiResponse.success(paymentService.getPaymentsPaginated(pageable)));
     }
 
     @GetMapping("/{id}")

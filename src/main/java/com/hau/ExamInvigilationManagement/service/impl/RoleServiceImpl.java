@@ -7,6 +7,8 @@ import com.hau.ExamInvigilationManagement.mapper.RoleMapper;
 import com.hau.ExamInvigilationManagement.repository.RoleRepository;
 import com.hau.ExamInvigilationManagement.service.RoleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,6 +27,18 @@ public class RoleServiceImpl implements RoleService {
             throw new RuntimeException("Tên quyền đã tồn tại!");
         }
         return roleMapper.toRoleResponse(roleRepository.save(roleMapper.toRole(request)));
+    }
+
+    @Override
+    public Page<RoleResponse> getAllWithPagination(Pageable pageable) {
+        Page<Role> page = roleRepository.findAll(pageable);
+        return page.map(roleMapper::toRoleResponse);
+    }
+
+    @Override
+    public Page<RoleResponse> searchByKeyword(String keyword, Pageable pageable) {
+        Page<Role> page = roleRepository.searchByKeyword(keyword, pageable);
+        return page.map(roleMapper::toRoleResponse);
     }
 
     @Override

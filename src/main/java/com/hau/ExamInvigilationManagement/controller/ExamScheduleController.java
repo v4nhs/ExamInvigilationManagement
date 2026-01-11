@@ -5,10 +5,14 @@ import com.hau.ExamInvigilationManagement.dto.request.CreateExamScheduleRequest;
 import com.hau.ExamInvigilationManagement.dto.response.ApiResponse;
 import com.hau.ExamInvigilationManagement.service.ExamScheduleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.Collections;
 
 @RestController
@@ -66,6 +70,12 @@ public class ExamScheduleController {
         return ResponseEntity.ok(ApiResponse.success(service.getAvailableLecturers(id)));
     }
 
+    @GetMapping("/{id}/assigned-lecturers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT')")
+    public ResponseEntity<?> getAssignedLecturers(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(service.getAssignedLecturers(id)));
+    }
+
     @DeleteMapping("/{id}/assign/{lecturerId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT')")
     public ResponseEntity<?> unassignLecturer(
@@ -74,5 +84,27 @@ public class ExamScheduleController {
     ) {
         service.unassignLecturer(id, lecturerId);
         return ResponseEntity.ok(ApiResponse.success(Collections.singletonMap("message", "Xóa phân công giảng viên thành công")));
+    }
+
+    @GetMapping("/paginated")
+    public ResponseEntity<?> getAllWithPagination(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction
+    ) {
+        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sortBy));
+        return ResponseEntity.ok(service.getAllWithPagination(pageable));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<?> search(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(service.searchByKeyword(keyword, pageable));
     }
 }
