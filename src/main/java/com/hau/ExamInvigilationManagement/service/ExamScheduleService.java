@@ -1,6 +1,7 @@
 package com.hau.ExamInvigilationManagement.service;
 
 import com.hau.ExamInvigilationManagement.dto.request.CreateExamScheduleRequest;
+import com.hau.ExamInvigilationManagement.dto.response.AssignmentResponse;
 import com.hau.ExamInvigilationManagement.dto.response.ExamScheduleResponse;
 import com.hau.ExamInvigilationManagement.dto.response.LecturerResponse;
 import org.springframework.data.domain.Page;
@@ -24,5 +25,7 @@ public interface ExamScheduleService {
     List<LecturerResponse> getAssignedLecturers(Long examScheduleId);
     List<ExamScheduleResponse> getExamSchedulesByLecturerId(Long lecturerId);
     List<ExamScheduleResponse> getExamSchedulesByLecturerIdentifier(String identifier);
-
+    List<AssignmentResponse> getAssignmentsForSchedule(Long examScheduleId);
+    void updateAssignment(Long assignmentId, String room);
+    void deleteAssignment(Long assignmentId);
 }

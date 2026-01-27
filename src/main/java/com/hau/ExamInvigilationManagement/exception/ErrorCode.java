@@ -31,7 +31,8 @@ public enum ErrorCode {
     INVALID_EXAM_TYPE(6003, "Exam type does not match the requested operation"),
     SCHEDULE_CONFLICT(7001, "Schedule conflict"),
     ASSIGNMENT_NOT_FOUND(8001, "Assignment not found"),
-
+    ROOM_NOT_FOUND(9001, "Phòng học không tìm thấy"),
+    ROOM_ALREADY_EXISTS(9002, "Phòng học đã tồn tại"),
     ;
 
     private int code;

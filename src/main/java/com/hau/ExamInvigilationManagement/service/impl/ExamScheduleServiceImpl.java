@@ -1,6 +1,7 @@
 package com.hau.ExamInvigilationManagement.service.impl;
 
 import com.hau.ExamInvigilationManagement.dto.request.CreateExamScheduleRequest;
+import com.hau.ExamInvigilationManagement.dto.response.AssignmentResponse;
 import com.hau.ExamInvigilationManagement.dto.response.ExamScheduleResponse;
 import com.hau.ExamInvigilationManagement.dto.response.LecturerResponse;
 import com.hau.ExamInvigilationManagement.entity.*;
@@ -39,7 +40,6 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     private final AssignmentRepository assignmentRepo;
     private final PaymentService paymentService;
     private final LecturerMapper lecturerMapper;
-    private final ExamAssignmentRepository examAssignmentRepository;
 
     @Override
     public ExamScheduleResponse create(CreateExamScheduleRequest req) {
@@ -72,8 +72,8 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
 
     @Override
     public List<ExamScheduleResponse> getExamSchedulesByLecturerId(Long lecturerId) {
-        return examAssignmentRepository.findByLecturerId(lecturerId).stream()
-                .map(ExamAssignment::getExamSchedule)
+        return assignmentRepo.findByLecturerId(lecturerId).stream()
+                .map(Assignment::getExamSchedule)
                 .distinct()
                 .map(ExamScheduleResponse::from)
                 .collect(Collectors.toList());
@@ -169,6 +169,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
             assignmentRepo.save(Assignment.builder()
                     .examSchedule(exam)
                     .lecturer(lecturer)
+                    .room(room)
                     .build());
 
             // TÍNH TIỀN: Thi viết lưu số sinh viên thực tế để hiển thị
@@ -188,18 +189,15 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     public void assignNonWrittenExam(Long examId, List<Long> lecturerIds, String room, Integer studentCount) {
         ExamSchedule exam = examRepo.findById(examId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
-        // 🔴 THÊM: XÓA PHÂN CÔNG CŨ CỦA CA THI NÀY
         List<Assignment> existingAssignments = assignmentRepo.findByExamSchedule(exam);
         if (!existingAssignments.isEmpty()) {
-            // Thu hồi tiền từ những giảng viên cũ
             for (Assignment oldAssignment : existingAssignments) {
                 paymentService.revokePayment(exam, oldAssignment.getLecturer());
             }
             // Xóa phân công cũ
             assignmentRepo.deleteAll(existingAssignments);
-            assignmentRepo.flush(); // Đảm bảo xóa được trước khi thêm cái mới
+            assignmentRepo.flush();
         }
-        // ✅ XONG - GIỜ KHÔNG CÓ XUNG ĐộT NỮA
 
         // 1. CẬP NHẬT PHÒNG THI & SỐ LƯỢNG SINH VIÊN
         boolean isChanged = false;
@@ -226,6 +224,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
             assignmentRepo.save(Assignment.builder()
                     .examSchedule(exam)
                     .lecturer(lecturer)
+                    .room(room)
                     .build());
             paymentService.calculatePayment(exam, lecturer, (long) currentTotalStudents);
         }
@@ -234,16 +233,20 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     // PRIVATE HELPER METHODS
     // =========================================================================
 
-    private void validateAssignmentLimit(ExamSchedule exam, int newCount) {
-        long currentAssignedCount = assignmentRepo.countByExamSchedule(exam);
-        if (currentAssignedCount + newCount > exam.getInvigilatorCount()) {
+    private void validateAssignmentLimit(ExamSchedule exam, int uniqueLecturerCount) {
+        long currentUniqueCount = assignmentRepo.findByExamSchedule(exam).stream()
+                .map(a -> a.getLecturer().getId())
+                .distinct()
+                .count();
+
+        if (currentUniqueCount + uniqueLecturerCount > exam.getInvigilatorCount()) {
             throw new AppException(ErrorCode.INVALID_INVIGILATOR_COUNT);
         }
     }
 
     // 🟢 HÀM CHECK LOGIC QUAN TRỌNG NHẤT
     private Lecturer validateAndGetLecturer(ExamSchedule exam, Long lecturerId) {
-        // 1. Check trùng trong cùng ca (Duplicate Assignment)
+        // 1. Check trùng trong cùng ca (Duplicate Assignment) - không cần check room
         boolean isAssigned = assignmentRepo.findByExamSchedule(exam).stream()
                 .anyMatch(a -> a.getLecturer().getId().equals(lecturerId));
 
@@ -255,7 +258,6 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
                 .orElseThrow(() -> new AppException(ErrorCode.LECTURER_NOT_FOUND));
 
         // 2. CHECK TRÙNG LỊCH (Time Overlap)
-        // Nếu endTime null, mặc định +90 phút
         LocalTime effectiveEndTime = (exam.getEndTime() != null)
                 ? exam.getEndTime()
                 : exam.getExamTime().plusMinutes(90);
@@ -274,7 +276,6 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
 
         return lecturer;
     }
-
     @Override
     public List<LecturerResponse> getAvailableLecturers(Long examScheduleId) {
         ExamSchedule exam = examRepo.findById(examScheduleId)
@@ -352,6 +353,69 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
                 .toList();
     }
 
+    // Add these methods to ExamScheduleServiceImpl
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAssignment(Long assignmentId, String room) {
+        Assignment assignment = assignmentRepo.findById(assignmentId)
+                .orElseThrow(() -> new AppException(ErrorCode.ASSIGNMENT_NOT_FOUND));
+
+        if (room != null && !room.trim().isEmpty()) {
+            assignment.setRoom(room);
+            assignmentRepo.save(assignment);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAssignment(Long assignmentId) {
+        Assignment assignment = assignmentRepo.findById(assignmentId)
+                .orElseThrow(() -> new AppException(ErrorCode.ASSIGNMENT_NOT_FOUND));
+
+        ExamSchedule exam = assignment.getExamSchedule();
+        Lecturer lecturer = assignment.getLecturer();
+
+        // Revoke payment
+        paymentService.revokePayment(exam, lecturer);
+
+        // Delete assignment
+        assignmentRepo.delete(assignment);
+        assignmentRepo.flush();
+
+        // Recalculate payments for remaining lecturers if non-written exam
+        if (exam.getExamType() != ExamType.WRITTEN) {
+            recalculateRemainingLecturers(exam);
+        }
+    }
+
+    @Override
+    public List<AssignmentResponse> getAssignmentsForSchedule(Long examScheduleId) {
+        ExamSchedule exam = examRepo.findById(examScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        return assignmentRepo.findByExamSchedule(exam)
+                .stream()
+                .map(assignment -> {
+                    Lecturer lecturer = assignment.getLecturer();
+                    User user = lecturer.getUser();
+
+                    String lecturerName = (user != null)
+                            ? (user.getFirstName() + " " + user.getLastName()).trim()
+                            : "N/A";
+
+                    String email = (user != null) ? user.getEmail() : "N/A";
+
+                    return AssignmentResponse.builder()
+                            .id(assignment.getId())
+                            .lecturerId(lecturer.getId())
+                            .lecturerName(lecturerName)
+                            .email(email)
+                            .room(assignment.getRoom())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
     // =========================================================================
     // IMPORT EXCEL (ĐÃ CẬP NHẬT ĐỂ ĐỌC END-TIME)
     // =========================================================================

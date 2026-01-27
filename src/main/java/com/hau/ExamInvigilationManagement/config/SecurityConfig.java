@@ -110,15 +110,30 @@ public class SecurityConfig {
                         // VIEW: ADMIN, DEPARTMENT, ACCOUNTING
                         .requestMatchers(HttpMethod.GET, "/api/lecturers").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING", "ROLE_LECTURER")
                         .requestMatchers(HttpMethod.GET, "/api/lecturers/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING")
-                        // MANAGE: ADMIN, DEPARTMENT
+                        .requestMatchers(HttpMethod.GET, "/api/lecturers").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING", "ROLE_LECTURER")
+                        .requestMatchers(HttpMethod.GET, "/api/lecturers/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING")
                         .requestMatchers(HttpMethod.POST, "/api/lecturers").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
                         .requestMatchers(HttpMethod.PUT, "/api/lecturers/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
                         .requestMatchers(HttpMethod.DELETE, "/api/lecturers/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
 
+                        // MANAGE: ADMIN, DEPARTMENT
+                        .requestMatchers(HttpMethod.POST, "/api/lecturers").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
+                        .requestMatchers(HttpMethod.PUT, "/api/lecturers/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
+                        .requestMatchers(HttpMethod.DELETE, "/api/lecturers/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
+                        // ===== ROOM MANAGEMENT =====
+                        // VIEW: ADMIN, DEPARTMENT, LECTURER
+//                        .requestMatchers(HttpMethod.GET, "/api/rooms").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
+                        .requestMatchers(HttpMethod.GET, "/api/rooms").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_LECTURER")
+                        // MANAGE: ADMIN DEPARTMENT
+                        .requestMatchers(HttpMethod.POST, "/api/rooms").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
+                        .requestMatchers(HttpMethod.PUT, "/api/rooms/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
+                        .requestMatchers(HttpMethod.DELETE, "/api/rooms/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
                         // ===== EXAM SCHEDULES =====
                         // VIEW: ADMIN, DEPARTMENT, ACCOUNTING, LECTURER, USER
                         .requestMatchers(HttpMethod.GET, "/api/exam-schedules").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING", "ROLE_LECTURER", "ROLE_USER")
                         .requestMatchers(HttpMethod.GET, "/api/exam-schedules/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_ACCOUNTING", "ROLE_LECTURER", "ROLE_USER")
+                        .requestMatchers(HttpMethod.PUT, "/api/exam-schedules/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
+                        .requestMatchers(HttpMethod.DELETE, "/api/exam-schedules/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
                         // LECTURER VIEW OWN EXAM ASSIGNMENTS
                         .requestMatchers(HttpMethod.GET, "/api/exam-schedules/lecturer/*")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT", "ROLE_LECTURER")
