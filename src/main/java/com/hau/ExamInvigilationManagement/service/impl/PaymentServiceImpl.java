@@ -123,13 +123,19 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public void revokePayment(ExamSchedule exam, Lecturer lecturer) {
-               PaymentDetail detail = paymentDetailRepository.findByExamAndLecturer(exam, lecturer)
-                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
-        Payment payment = detail.getPayment();
-        payment.setTotalAmount(payment.getTotalAmount() - detail.getAmount());
-        paymentRepository.save(payment);
+        List<PaymentDetail> details = paymentDetailRepository.findByExamAndLecturer(exam, lecturer);
 
-        paymentDetailRepository.delete(detail);
+        if (details.isEmpty()) {
+            throw new AppException(ErrorCode.PAYMENT_NOT_FOUND);
+        }
+
+        Payment payment = details.get(0).getPayment();
+        for (PaymentDetail detail : details) {
+            payment.setTotalAmount(payment.getTotalAmount() - detail.getAmount());
+            paymentDetailRepository.delete(detail);
+        }
+
+        paymentRepository.save(payment);
     }
 
     @Override

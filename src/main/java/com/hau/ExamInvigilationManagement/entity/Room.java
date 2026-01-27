@@ -2,27 +2,22 @@ package com.hau.ExamInvigilationManagement.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "assignments")
+@Table(name = "rooms")
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Assignment {
-
+public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    private Lecturer lecturer;
+    @Column(name = "room_name", unique = true, nullable = false)
+    private String roomName;
 
-    @ManyToOne
-    private ExamSchedule examSchedule;
-    @Column(name = "room", length = 50)
-    private String room;
+    @Column(name = "room_status")
+    private RoomStatus roomStatus;
 }

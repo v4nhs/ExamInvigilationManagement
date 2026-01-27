@@ -7,6 +7,5 @@ import com.hau.ExamInvigilationManagement.entity.Lecturer;
 import java.util.List;
 
 public interface AssignmentService {
-
-    void assignLecturers(Long examScheduleId, List<Long> lecturerIds);
+    void assignLecturers(Long examScheduleId, List<Long> lecturerIds, String room);
 }
