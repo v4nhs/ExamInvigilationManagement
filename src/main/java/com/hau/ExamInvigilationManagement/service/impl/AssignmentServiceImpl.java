@@ -30,7 +30,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final PaymentService paymentService;
 
     @Override
-    public void assignLecturers(Long examScheduleId, List<Long> lecturerIds) {
+    public void assignLecturers(Long examScheduleId, List<Long> lecturerIds, String room) {
 
         ExamSchedule exam = examRepo.findById(examScheduleId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
@@ -83,6 +83,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             assignmentRepo.save(Assignment.builder()
                     .examSchedule(exam)
                     .lecturer(lecturer)
+                    .room(room)
                     .build());
             paymentService.calculatePayment(exam, lecturer, (long) totalStudents);
         }

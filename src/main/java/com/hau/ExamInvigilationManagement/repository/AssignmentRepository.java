@@ -17,8 +17,17 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Assignment> findByExamSchedule(ExamSchedule examSchedule);
 
     long countByExamSchedule(ExamSchedule examSchedule);
+
     boolean existsByExamScheduleAndLecturer(ExamSchedule examSchedule, Lecturer lecturer);
+
     Optional<Assignment> findByExamScheduleAndLecturer(ExamSchedule examSchedule, Lecturer lecturer);
+
+    @Query("""
+        SELECT a FROM Assignment a
+        WHERE a.lecturer.id = :lecturerId
+    """)
+    List<Assignment> findByLecturerId(@Param("lecturerId") Long lecturerId);
+
     @Query("""
         SELECT COUNT(a) FROM Assignment a
         JOIN a.examSchedule e
