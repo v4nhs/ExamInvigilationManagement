@@ -142,13 +142,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/exam-schedules/import").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/exam-schedules/*").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/exam-schedules/*").hasAuthority("ROLE_ADMIN")
-
                         // ===== EXAM ASSIGNMENTS - LECTURER ASSIGNMENT =====
                         // DEPARTMENT can manage assignments
                         .requestMatchers(HttpMethod.GET, "/api/exam-schedules/*/available-lecturers").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
                         .requestMatchers(HttpMethod.POST, "/api/exam-schedules/*/assign-written").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
                         .requestMatchers(HttpMethod.POST, "/api/exam-schedules/*/assign-other").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
                         .requestMatchers(HttpMethod.DELETE, "/api/exam-schedules/*/assign/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
+                        .requestMatchers(HttpMethod.PATCH, "/api/exam-schedules/assignments/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_DEPARTMENT")
 
                         // ===== PAYMENT/ACCOUNTING MANAGEMENT =====
                         // VIEW: ADMIN, ACCOUNTING, DEPARTMENT, LECTURER

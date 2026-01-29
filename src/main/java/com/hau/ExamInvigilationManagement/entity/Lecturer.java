@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.Fetch;
 
+import java.util.List;
+
 @Entity
 @Table(name = "lecturers")
 @Data
@@ -31,4 +33,6 @@ public class Lecturer {
     @Fetch(FetchMode.JOIN)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;
+    @ManyToMany(mappedBy = "lecturers", fetch = FetchType.LAZY)
+    private List<ExamSchedule> examSchedules;
 }

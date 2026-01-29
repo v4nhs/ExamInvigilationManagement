@@ -1,6 +1,6 @@
 package com.hau.ExamInvigilationManagement.controller;
 
-import com.hau.ExamInvigilationManagement.dto.request.AssignLecturerRequest;
+import com.hau.ExamInvigilationManagement.dto.request.AssignmentRequest;
 import com.hau.ExamInvigilationManagement.dto.request.CreateExamScheduleRequest;
 import com.hau.ExamInvigilationManagement.dto.response.ApiResponse;
 import com.hau.ExamInvigilationManagement.service.ExamScheduleService;
@@ -32,34 +32,31 @@ public class ExamScheduleController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> create(@RequestBody CreateExamScheduleRequest request) {
-        // Service đã return ExamScheduleResponse, không cần map lại
         return ResponseEntity.ok(ApiResponse.success(service.create(request)));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT', 'ACCOUNTING')")
     public ResponseEntity<?> getAll() {
-        // Service đã return List<ExamScheduleResponse>, không cần map lại
         return ResponseEntity.ok(ApiResponse.success(service.getAll()));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT', 'ACCOUNTING')")
     public ResponseEntity<?> getById(@PathVariable Long id) {
-        // Service đã return ExamScheduleResponse, không cần map lại
         return ResponseEntity.ok(ApiResponse.success(service.getById(id)));
     }
 
     @PostMapping("/{id}/assign-written")
     @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT')")
-    public ResponseEntity<?> assignWritten(@PathVariable Long id, @RequestBody AssignLecturerRequest req) {
+    public ResponseEntity<?> assignWritten(@PathVariable Long id, @RequestBody AssignmentRequest req) {
         service.assignWrittenExam(id, req.getLecturerIds(), req.getRoom(), req.getStudentCount());
         return ResponseEntity.ok(ApiResponse.success(Collections.singletonMap("message", "Phân công & Cập nhật thành công")));
     }
 
     @PostMapping("/{id}/assign-other")
     @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT')")
-    public ResponseEntity<?> assignOther(@PathVariable Long id, @RequestBody AssignLecturerRequest req) {
+    public ResponseEntity<?> assignOther(@PathVariable Long id, @RequestBody AssignmentRequest req) {
         service.assignNonWrittenExam(id, req.getLecturerIds(), req.getRoom(), req.getStudentCount());
         return ResponseEntity.ok(ApiResponse.success(Collections.singletonMap("message", "Phân công & Cập nhật thành công")));
     }
@@ -84,6 +81,12 @@ public class ExamScheduleController {
     ) {
         service.unassignLecturer(id, lecturerId);
         return ResponseEntity.ok(ApiResponse.success(Collections.singletonMap("message", "Xóa phân công giảng viên thành công")));
+    }
+
+    @GetMapping("/{id}/assignments")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT', 'ACCOUNTING')")
+    public ResponseEntity<?> getAssignments(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(service.getAssignedLecturers(id)));
     }
 
     @GetMapping("/paginated")

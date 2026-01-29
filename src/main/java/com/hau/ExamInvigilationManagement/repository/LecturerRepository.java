@@ -36,4 +36,5 @@ public interface LecturerRepository extends JpaRepository<Lecturer, Long> {
 
     @Query("SELECT l FROM Lecturer l WHERE l.user.id = :userId")
     Optional<Lecturer> findByUserId(@Param("userId") String userId);
+    List<Lecturer> findByExamSchedules_Id(Long examScheduleId);
 }

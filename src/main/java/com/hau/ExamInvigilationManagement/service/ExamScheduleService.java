@@ -24,5 +24,5 @@ public interface ExamScheduleService {
     List<LecturerResponse> getAssignedLecturers(Long examScheduleId);
     List<ExamScheduleResponse> getExamSchedulesByLecturerId(Long lecturerId);
     List<ExamScheduleResponse> getExamSchedulesByLecturerIdentifier(String identifier);
-
+    List<?> getAssignments(Long examScheduleId);
 }

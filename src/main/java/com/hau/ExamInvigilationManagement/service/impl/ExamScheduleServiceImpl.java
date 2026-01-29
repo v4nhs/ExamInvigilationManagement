@@ -1,6 +1,7 @@
 package com.hau.ExamInvigilationManagement.service.impl;
 
 import com.hau.ExamInvigilationManagement.dto.request.CreateExamScheduleRequest;
+import com.hau.ExamInvigilationManagement.dto.response.AssignmentResponse;
 import com.hau.ExamInvigilationManagement.dto.response.ExamScheduleResponse;
 import com.hau.ExamInvigilationManagement.dto.response.LecturerResponse;
 import com.hau.ExamInvigilationManagement.entity.*;
@@ -39,7 +40,6 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     private final AssignmentRepository assignmentRepo;
     private final PaymentService paymentService;
     private final LecturerMapper lecturerMapper;
-    private final ExamAssignmentRepository examAssignmentRepository;
 
     @Override
     public ExamScheduleResponse create(CreateExamScheduleRequest req) {
@@ -72,8 +72,8 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
 
     @Override
     public List<ExamScheduleResponse> getExamSchedulesByLecturerId(Long lecturerId) {
-        return examAssignmentRepository.findByLecturerId(lecturerId).stream()
-                .map(ExamAssignment::getExamSchedule)
+        return assignmentRepo.findByLecturerId(lecturerId).stream()
+                .map(Assignment::getExamSchedule)
                 .distinct()
                 .map(ExamScheduleResponse::from)
                 .collect(Collectors.toList());
@@ -169,6 +169,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
             assignmentRepo.save(Assignment.builder()
                     .examSchedule(exam)
                     .lecturer(lecturer)
+                    .room(exam.getRoom())
                     .build());
 
             // TÍNH TIỀN: Thi viết lưu số sinh viên thực tế để hiển thị
@@ -226,6 +227,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
             assignmentRepo.save(Assignment.builder()
                     .examSchedule(exam)
                     .lecturer(lecturer)
+                    .room(exam.getRoom())
                     .build());
             paymentService.calculatePayment(exam, lecturer, (long) currentTotalStudents);
         }
@@ -349,6 +351,27 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
         return assignmentRepo.findByExamSchedule(exam)
                 .stream()
                 .map(assignment -> lecturerMapper.toResponse(assignment.getLecturer()))
+                .toList();
+    }
+    @Override
+    public List<?> getAssignments(Long examScheduleId) {
+        ExamSchedule schedule = examRepo.findById(examScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        return assignmentRepo.findByExamSchedule(schedule)
+                .stream()
+                .map(assignment -> {
+                    Lecturer lecturer = assignment.getLecturer();
+                    String lecturerName = lecturer.getUser().getFirstName() + " " + lecturer.getUser().getLastName();
+
+                    return new AssignmentResponse(
+                            assignment.getId(),
+                            lecturer.getId(),
+                            lecturerName,
+                            schedule.getRoom() != null ? schedule.getRoom() : "",
+                            String.valueOf(schedule.getStudentCount() != null ? schedule.getStudentCount() : 0)
+                    );
+                })
                 .toList();
     }
 

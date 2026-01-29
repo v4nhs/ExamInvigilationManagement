@@ -49,4 +49,11 @@ public class ExamSchedule {
 
     @Column(name = "invigilator_count")
     private Integer invigilatorCount;
+    @ManyToMany
+    @JoinTable(
+            name = "exam_invigilators",
+            joinColumns = @JoinColumn(name = "exam_schedule_id"),
+            inverseJoinColumns = @JoinColumn(name = "lecturer_id")
+    )
+    private List<Lecturer> lecturers;
 }
